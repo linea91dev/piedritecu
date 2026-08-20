@@ -326,7 +326,18 @@ function recalcularVacacion() {
         return;
     }
 
-    // Sin +1: un año aniversario = 365 días.
+    var startVal = formatDateUTC(start);
+    var endVal = formatDateUTC(end);
+    var historyRows = vacationHistory[emp.id] || vacationHistory[String(emp.id)] || [];
+    var periodExists = historyRows.some(function(row) {
+        return row.date_start === startVal && row.date_end === endVal;
+    });
+    if (periodExists) {
+        $('#date_error').html('Este empleado ya tiene un registro con el mismo período. No se puede duplicar.');
+        $('#submit_vacation').attr('disabled', 'disabled');
+    }
+
+    // Sin +1: un año aniversario = 365 días (366 si el período incluye 29/feb).
     var workedDays = Math.floor((end.getTime() - start.getTime()) / 86400000);
     var accruedDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
     var usedDays = emp.used;
@@ -341,7 +352,9 @@ function recalcularVacacion() {
     $('#used_days').val(usedDays.toFixed(3));
     $('#days').val(vacationDays.toFixed(3));
     $('#amount').val(amount.toFixed(2));
-    $('#submit_vacation').removeAttr('disabled');
+    if (!periodExists) {
+        $('#submit_vacation').removeAttr('disabled');
+    }
 }
 
 $(document).ready(function() {

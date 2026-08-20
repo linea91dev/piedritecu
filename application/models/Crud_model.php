@@ -5532,6 +5532,24 @@ function new_change()
         return $this->db->get()->result_array();
     }
 
+    function vacation_period_exists($employee_id, $date_start, $date_end, $exclude_vacation_id = null)
+    {
+        $employee_id = (int) $employee_id;
+        if ($employee_id <= 0 || empty($date_start) || empty($date_end)) {
+            return false;
+        }
+
+        $this->db->from('vacations');
+        $this->db->where('employee_id', $employee_id);
+        $this->db->where('date_start', $date_start);
+        $this->db->where('date_end', $date_end);
+        $this->db->where('status', 1);
+        if (!empty($exclude_vacation_id)) {
+            $this->db->where('vacation_id !=', (int) $exclude_vacation_id);
+        }
+        return $this->db->count_all_results() > 0;
+    }
+
     function calculate_vacation_days($date_start, $date_end, $hiring_date = null, $employee_id = null, $exclude_vacation_id = null)
     {
         $effective_start = $date_start;
@@ -5594,6 +5612,13 @@ function new_change()
             $date_start = $hiring;
         }
 
+        if ($this->vacation_period_exists($employee_id, $date_start, $date_end)) {
+            return array(
+                'ok' => false,
+                'message' => 'Este empleado ya tiene un registro activo con el mismo período ('.date('d/m/Y', strtotime($date_start)).' - '.date('d/m/Y', strtotime($date_end)).').',
+            );
+        }
+
         $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring, $employee_id);
         $amount = ($type === 'Pagada')
             ? $this->calculate_vacation_amount($salary, $vacation_days)
@@ -5616,6 +5641,8 @@ function new_change()
         $message = 'Ha registrado vacaciones '.$type.' para '.$this->getName('admin', $data['employee_id']);
         $this->insert_binnacle($message);
         $this->insert_notification($message, base64_encode('admin/vacaciones/'), 'vacaciones', 'Vacaciones');
+
+        return array('ok' => true, 'message' => 'Vacación registrada correctamente.');
     }
 
     function update_vacation($ID)
@@ -5637,6 +5664,13 @@ function new_change()
             $date_start = $hiring;
         }
 
+        if ($this->vacation_period_exists($employee_id, $date_start, $date_end, $ID)) {
+            return array(
+                'ok' => false,
+                'message' => 'Este empleado ya tiene otro registro activo con el mismo período ('.date('d/m/Y', strtotime($date_start)).' - '.date('d/m/Y', strtotime($date_end)).').',
+            );
+        }
+
         $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring, $employee_id, $ID);
         $amount = ($type === 'Pagada')
             ? $this->calculate_vacation_amount($salary, $vacation_days)
@@ -5656,6 +5690,8 @@ function new_change()
 
         $message = 'Ha actualizado el registro de vacaciones #'.$ID;
         $this->insert_binnacle($message);
+
+        return array('ok' => true, 'message' => 'Vacación actualizada correctamente.');
     }
 
     function delete_vacation($ID)

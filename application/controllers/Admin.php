@@ -2565,15 +2565,25 @@ class Admin extends CI_Controller
 
         if ($param1 == 'create') {
             $this->ver_permisos('crear_vacaciones');
-            $this->crud_model->create_vacation();
-            $this->session->set_flashdata('flash_message', "Vacación registrada correctamente.");
+            $result = $this->crud_model->create_vacation();
+            if (empty($result['ok'])) {
+                $this->session->set_flashdata('flash_error', !empty($result['message']) ? $result['message'] : 'No se pudo registrar la vacación.');
+                redirect(base_url() . 'admin/registrar_vacacion/', 'refresh');
+                return;
+            }
+            $this->session->set_flashdata('flash_message', $result['message']);
             redirect(base_url() . 'admin/vacaciones/', 'refresh');
         }
 
         if ($param1 == 'update') {
             $this->ver_permisos('editar_vacaciones');
-            $this->crud_model->update_vacation($param2);
-            $this->session->set_flashdata('flash_message', "Vacación actualizada correctamente.");
+            $result = $this->crud_model->update_vacation($param2);
+            if (empty($result['ok'])) {
+                $this->session->set_flashdata('flash_error', !empty($result['message']) ? $result['message'] : 'No se pudo actualizar la vacación.');
+                redirect(base_url() . 'admin/vacaciones/', 'refresh');
+                return;
+            }
+            $this->session->set_flashdata('flash_message', $result['message']);
             redirect(base_url() . 'admin/vacaciones/', 'refresh');
         }
 

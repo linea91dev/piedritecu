@@ -313,6 +313,17 @@ function recalcularEditVacacion() {
         return;
     }
 
+    var startVal = formatEditDateUTC(start);
+    var endVal = formatEditDateUTC(end);
+    var historyRows = editVacationHistory[emp.id] || editVacationHistory[String(emp.id)] || [];
+    var periodExists = historyRows.some(function(row) {
+        return row.date_start === startVal && row.date_end === endVal;
+    });
+    if (periodExists) {
+        $('#edit_date_error').html('Este empleado ya tiene otro registro con el mismo período. No se puede duplicar.');
+        $('#edit_submit_vacation').attr('disabled', 'disabled');
+    }
+
     var workedDays = Math.floor((end.getTime() - start.getTime()) / 86400000);
     var accruedDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
     var usedDays = emp.used;
@@ -327,7 +338,9 @@ function recalcularEditVacacion() {
     $('#edit_used_days').val(usedDays.toFixed(3));
     $('#edit_days').val(vacationDays.toFixed(3));
     $('#edit_amount').val(amount.toFixed(2));
-    $('#edit_submit_vacation').removeAttr('disabled');
+    if (!periodExists) {
+        $('#edit_submit_vacation').removeAttr('disabled');
+    }
 }
 
 $(document).ready(function() {
