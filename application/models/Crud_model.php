@@ -10916,10 +10916,23 @@ function new_change()
             $payroll_name = 'Oficial';
         }
 
-        $html = $this->load->view('backend/viewspdf/payroll_boleta.php', $data, TRUE);
-        $pdf_label = in_array($payroll_name, array('Oficial', 'Interna'), true)
-            ? 'Boletas_planilla_'.strtolower($payroll_name)
-            : 'Boletas_'.str_replace(' ', '_', $payroll_name);
+        $is_bonus = in_array($payroll_name, array('Bono 14', 'Aguinaldo'), true);
+        $employee_id = (int) $post;
+        // Planilla completa (Oficial/Interna) cuando no se pide un empleado.
+        // Boleta individual si hay employee_id; bonos con /0 siguen en boletas.
+        $use_boleta = ($employee_id > 0) || $is_bonus;
+
+        if ($use_boleta) {
+            $html = $this->load->view('backend/viewspdf/payroll_boleta.php', $data, TRUE);
+            $pdf_label = $is_bonus
+                ? 'Boletas_'.str_replace(' ', '_', $payroll_name)
+                : 'Boleta_planilla_'.strtolower($payroll_name);
+        } else {
+            $html = $this->load->view('backend/viewspdf/payroll.php', $data, TRUE);
+            $pdf_label = in_array($payroll_name, array('Oficial', 'Interna'), true)
+                ? 'Planilla_'.strtolower($payroll_name)
+                : str_replace(' ', '_', $payroll_name);
+        }
 
         $pdfFilePath = $pdf_label."-".date('d/m/Y H:i:s').".pdf";
         $this->load->library('M_pdf');

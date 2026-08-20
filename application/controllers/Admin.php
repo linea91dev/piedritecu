@@ -2396,7 +2396,7 @@ class Admin extends CI_Controller
             $this->ver_permisos('reportes_planillas');
 
             $this->crud_model->imprimir_payroll($param2,$param3);
-            $this->session->set_flashdata('flash_message' , "Boleta generada correctamente.");
+            return;
         }
         if($param1 == 'detalle'){
             $this->admin_login();

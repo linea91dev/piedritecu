@@ -7,6 +7,7 @@ $back_url = $is_bonus_detail ? base_url().'admin/bonos' : base_url().'admin/plan
 $print_url = $is_bonus_detail
     ? base_url().'admin/bonos/imprimir/'.$payroll_id.'/0'
     : base_url().'admin/planillas/imprimir/'.$payroll_id.'/0';
+$print_label = $is_bonus_detail ? 'Imprimir boletas' : 'Imprimir planilla';
 ?>
 <div class="container-fluid">
     <div class="row">
@@ -43,7 +44,7 @@ $print_url = $is_bonus_detail
                                         <rect fill="#000000" opacity="0.3" x="8" y="2" width="8" height="2" rx="1"></rect>
                                     </g>
                                 </svg>
-                            </span> Imprimir boletas
+                            </span> <?php echo $print_label; ?>
                         </a>
                         <?php endif;?>
                     </div>
