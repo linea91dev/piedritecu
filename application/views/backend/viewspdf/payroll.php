@@ -7,6 +7,7 @@
     $branch_id = $this->session->userdata('branch_id');
     $payroll_row = $this->db->get_where('payroll', array('payroll_id' => $ID, 'branch_id' => $branch_id))->row_array();
     $payroll_name = !empty($payroll_row['payroll_name']) ? $payroll_row['payroll_name'] : 'Oficial';
+    $is_oficial = ($payroll_name === 'Oficial');
     $show_other_discount = in_array($payroll_name, array('Oficial', 'Interna'), true);
     $payroll_title = in_array($payroll_name, array('Oficial', 'Interna'), true)
         ? 'Planilla '.strtolower($payroll_name)
@@ -82,6 +83,7 @@
                             colspan="4">
                             Sueldo
                         </td>
+                        <?php if ($is_oficial): ?>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;"
                             colspan="4">
                             Descuento IGSS
@@ -90,16 +92,19 @@
                             colspan="4">
                             ISR
                         </td>
+                        <?php endif; ?>
                         <?php if ($show_other_discount): ?>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;"
                             colspan="4">
                             Descuentos
                         </td>
                         <?php endif; ?>
+                        <?php if ($is_oficial): ?>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;"
                             colspan="4">
                             Bonificación decreto 
                         </td>
+                        <?php endif; ?>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;"
                             colspan="4">
                             Total
@@ -171,6 +176,7 @@
                             style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
                             <?php echo $moneda.$emp['salary'];?>
                         </td>
+                        <?php if ($is_oficial): ?>
                         <td colspan="4"
                             style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
                             <?php echo $moneda.$emp['discount'];?>
@@ -179,16 +185,19 @@
                             style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
                             <?php echo $moneda.$emp['advance'];?>
                         </td>
+                        <?php endif; ?>
                         <?php if ($show_other_discount): ?>
                         <td colspan="4"
                             style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
                             <?php echo $moneda.number_format(floatval($emp['other_discount'] ?? 0), 2, '.', ',');?>
                         </td>
                         <?php endif; ?>
+                        <?php if ($is_oficial): ?>
                         <td colspan="4"
                             style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
                             <?php echo $moneda.$emp['remuneration'];?>
                         </td>
+                        <?php endif; ?>
                         <td colspan="4"
                             style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
                             <?php echo $moneda.$emp['sub'];?>
@@ -216,20 +225,24 @@
                         <td colspan="4" style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 14px; text-align:center; background: #ddd;">
                             <?php echo $moneda.number_format($total_salary,2,'.',',');?>
                         </td>
+                        <?php if ($is_oficial): ?>
                         <td colspan="4" style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 14px; text-align:center; background: #ddd;">
                             <?php echo $moneda.number_format($total_discount,2,'.',',');?>
                         </td>
                         <td colspan="4" style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 14px; text-align:center; background: #ddd;">
                             <?php echo $moneda.number_format($total_advance,2,'.',',');?>
                         </td>
+                        <?php endif; ?>
                         <?php if ($show_other_discount): ?>
                         <td colspan="4" style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 14px; text-align:center; background: #ddd;">
                             <?php echo $moneda.number_format($total_other_discount,2,'.',',');?>
                         </td>
                         <?php endif; ?>
+                        <?php if ($is_oficial): ?>
                         <td colspan="4" style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 14px; text-align:center; background: #ddd;">
                             <?php echo $moneda.number_format($total_remuneration,2,'.',',');?>
                         </td>
+                        <?php endif; ?>
                         <td colspan="4" style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 14px; text-align:center; background: #ddd;">
                             <?php echo $moneda.number_format($total_sub,2,'.',',');?>
                         </td>

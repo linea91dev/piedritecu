@@ -108,16 +108,24 @@
         <div class="col-sm-12">
             <div class="table-responsive">
                 <table class="table table-bordered">
+                    <?php
+                    $is_oficial_edit = ($payroll_name === 'Oficial');
+                    $show_other_discount_edit = in_array($payroll_name, array('Oficial', 'Interna'), true);
+                    ?>
                     <thead>
                         <tr>
                             <th>Empleado</th>
                             <th>Salario</th>
+                            <?php if ($is_oficial_edit): ?>
                             <th>Descuento IGSS</th>
                             <th>ISR</th>
-                            <?php if (in_array($payroll_name, array('Oficial', 'Interna'), true)): ?>
+                            <?php endif; ?>
+                            <?php if ($show_other_discount_edit): ?>
                             <th>Descuentos</th>
                             <?php endif; ?>
+                            <?php if ($is_oficial_edit): ?>
                             <th>Bonificación decreto</th>
+                            <?php endif; ?>
                             <th>Total</th>
                             <th>Notas</th>
                         </tr>
@@ -137,6 +145,7 @@
                                     value='<?php echo $employee[$i]['salary'];?>' onblur="sum('<?php echo $_id;?>')">
                             </td>
 
+                            <?php if ($is_oficial_edit): ?>
                             <td><input type="number" step="any" class="form-control" style="width:75px" min=0
                                     name='discount[]' id='discount--<?php echo $_id;?>'
                                     onblur="sum('<?php echo $_id;?>')" value='<?php echo $employee[$i]['discount'];?>'>
@@ -145,8 +154,12 @@
                             <td><input type="number" step="any" class="form-control" style="width:75px" min='0'
                                     name='advance[]' id='advance--<?php echo $_id;?>' onblur="sum('<?php echo $_id;?>')"
                                     value='<?php echo $employee[$i]['advance']?>'></td>
+                            <?php else: ?>
+                            <input type="hidden" name='discount[]' id='discount--<?php echo $_id;?>' value='0'>
+                            <input type="hidden" name='advance[]' id='advance--<?php echo $_id;?>' value='0'>
+                            <?php endif; ?>
 
-                            <?php if (in_array($payroll_name, array('Oficial', 'Interna'), true)): ?>
+                            <?php if ($show_other_discount_edit): ?>
                             <td><input type="number" step="any" class="form-control" style="width:75px" min='0'
                                     name='other_discount[]' id='other_discount--<?php echo $_id;?>' onblur="sum('<?php echo $_id;?>')"
                                     value='<?php echo isset($employee[$i]['other_discount']) ? $employee[$i]['other_discount'] : 0;?>'></td>
@@ -154,9 +167,13 @@
                             <input type="hidden" name='other_discount[]' id='other_discount--<?php echo $_id;?>' value='0'>
                             <?php endif; ?>
 
+                            <?php if ($is_oficial_edit): ?>
                             <td><input type="number" step="any" class="form-control" style="width:75px" min='0'
                                     name='remuneration[]' id='remuneration--<?php echo $_id;?>' onblur="sum('<?php echo $_id;?>')"
                                     value='<?php echo $employee[$i]['remuneration']?>'></td>
+                            <?php else: ?>
+                            <input type="hidden" name='remuneration[]' id='remuneration--<?php echo $_id;?>' value='0'>
+                            <?php endif; ?>
 
                             <td>
                                 <span class="text-danger text-center" id='sub--<?php echo $_id;?>'>
@@ -223,16 +240,16 @@ function sum(i) {
     var advance = $('#advance--' + i).val();
     var otherDiscount = $('#other_discount--' + i).val();
     var remuneration = $('#remuneration--' + i).val();
-    if (discount == "") {
+    if (discount == "" || discount == null) {
         discount = 0;
     }
-    if (advance == "") {
+    if (advance == "" || advance == null) {
         advance = 0;
     }
     if (otherDiscount == "" || otherDiscount == null) {
         otherDiscount = 0;
     }
-    if (remuneration == "") {
+    if (remuneration == "" || remuneration == null) {
         remuneration = 0;
     }
 

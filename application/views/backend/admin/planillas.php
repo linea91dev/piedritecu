@@ -223,6 +223,7 @@ $moneda = $this->crud_model->get_info("moneda");
                                             &nbsp;
                                                 <?php if($user_type == 1 || $permisos['reportes_planillas'] == 1):?>
                                             <a href="<?php echo base_url().'admin/planillas/imprimir/'.$row['payroll_id'].'/0';?>"
+                                                target="_blank" rel="noopener"
                                                 data-toggle="tooltip" data-original-title="Imprimir planilla" title="Imprimir planilla"
                                                 class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1">
                                                 <span class="svg-icon svg-icon-primary svg-icon-2x">

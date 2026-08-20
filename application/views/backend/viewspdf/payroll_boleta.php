@@ -15,6 +15,7 @@ if (!$payroll) {
 } else {
     $payroll_name = !empty($payroll['payroll_name']) ? $payroll['payroll_name'] : 'Oficial';
     $is_bonus = in_array($payroll_name, array('Bono 14', 'Aguinaldo'), true);
+    $is_oficial = ($payroll_name === 'Oficial');
     $is_regular = in_array($payroll_name, array('Oficial', 'Interna'), true);
     $show_other_discount = $is_regular;
     $payroll_title = $is_regular ? ('Planilla '.strtolower($payroll_name)) : $payroll_name;
@@ -141,7 +142,7 @@ if (!$payroll) {
             <td style="border:1px solid #000;padding:7px;"><?php echo $is_bonus ? 'Monto calculado' : 'Salario proporcional'; ?></td>
             <td style="border:1px solid #000;padding:7px;text-align:right;"><?php echo $moneda.number_format($salary, 2, '.', ','); ?></td>
         </tr>
-        <?php if ($is_regular): ?>
+        <?php if ($is_oficial): ?>
         <tr>
             <td style="border:1px solid #000;padding:7px;">Descuento IGSS</td>
             <td style="border:1px solid #000;padding:7px;text-align:right;">- <?php echo $moneda.number_format($discount, 2, '.', ','); ?></td>
@@ -150,12 +151,14 @@ if (!$payroll) {
             <td style="border:1px solid #000;padding:7px;">ISR</td>
             <td style="border:1px solid #000;padding:7px;text-align:right;">- <?php echo $moneda.number_format($advance, 2, '.', ','); ?></td>
         </tr>
+        <?php endif; ?>
         <?php if ($show_other_discount): ?>
         <tr>
             <td style="border:1px solid #000;padding:7px;">Descuentos</td>
             <td style="border:1px solid #000;padding:7px;text-align:right;">- <?php echo $moneda.number_format($other_discount, 2, '.', ','); ?></td>
         </tr>
         <?php endif; ?>
+        <?php if ($is_oficial): ?>
         <tr>
             <td style="border:1px solid #000;padding:7px;">Bonificación decreto</td>
             <td style="border:1px solid #000;padding:7px;text-align:right;"><?php echo $moneda.number_format($remuneration, 2, '.', ','); ?></td>

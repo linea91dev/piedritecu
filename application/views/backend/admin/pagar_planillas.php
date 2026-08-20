@@ -133,10 +133,10 @@ $planilla = $this->crud_model->get_info("planilla");
                                             <tr>
                                                 <th>Empleado</th>
                                                 <th>Salario proporcional</th>
-                                                <th>Descuento IGSS</th>
-                                                <th>ISR</th>
+                                                <th class="col-legal-oficial">Descuento IGSS</th>
+                                                <th class="col-legal-oficial">ISR</th>
                                                 <th class="col-descuento-oficial" style="display:none;">Descuentos</th>
-                                                <th>Bonificación decreto</th>
+                                                <th class="col-legal-oficial">Bonificación decreto</th>
                                                 <th>Total</th>
                                                 <th>Notas</th>
                                             </tr>
@@ -163,12 +163,12 @@ $planilla = $this->crud_model->get_info("planilla");
                                                         min="0" step="any" value='<?php echo $salario;?>'
                                                         onblur="sumar(<?php echo $_id;?>)">
                                                 </td>
-                                                <td><input type="number" step="any" class="form-control"
+                                                <td class="col-legal-oficial"><input type="number" step="any" class="form-control legal-input"
                                                         style="width:75px" min="0" name='discount[]'
                                                         id='discount-<?php echo $_id;?>'
                                                         onblur='sumar(<?php echo $_id;?>)' value='0'></td>
 
-                                                <td><input type="number" step="any" class="form-control"
+                                                <td class="col-legal-oficial"><input type="number" step="any" class="form-control legal-input"
                                                         style="width:75px" min="0" name='advance[]'
                                                         id='advance-<?php echo $_id;?>'
                                                         onblur='sumar(<?php echo $_id;?>)' value='0'></td>
@@ -180,7 +180,7 @@ $planilla = $this->crud_model->get_info("planilla");
                                                         onblur='sumar(<?php echo $_id;?>)' value='0'>
                                                 </td>
 
-                                                <td><input type="number" step="any" class="form-control"
+                                                <td class="col-legal-oficial"><input type="number" step="any" class="form-control legal-input"
                                                         style="width:75px" min="0" name='remuneration[]'
                                                         id='remuneration-<?php echo $_id;?>'
                                                         onblur='sumar(<?php echo $_id;?>)' value='0'></td>
@@ -203,10 +203,10 @@ $planilla = $this->crud_model->get_info("planilla");
                                             <tr>
                                                 <td></td>
                                                 <td></td>
-                                                <td></td>
-                                                <td></td>
+                                                <td class="col-legal-oficial"></td>
+                                                <td class="col-legal-oficial"></td>
                                                 <td class="col-descuento-oficial" style="display:none;"></td>
-                                                <td></td>
+                                                <td class="col-legal-oficial"></td>
                                                 <td class="text-right"></td>
                                                 <td class="text-right">
                                                     <h4><b>TOTAL PLANILLA</b><br> 
@@ -264,6 +264,10 @@ function isPlanillaConDescuentos() {
     return tipo === 'Oficial' || tipo === 'Interna';
 }
 
+function isPlanillaOficial() {
+    return $('#payroll_name').val() === 'Oficial';
+}
+
 function getMonthlyBaseForPayroll(salaryInput) {
     if ($('#payroll_name').val() === 'Interna') {
         return salaryInput.attr('data-complemento') || 0;
@@ -277,6 +281,13 @@ function toggleDescuentosOficial() {
     } else {
         $('.col-descuento-oficial').hide();
         $('.other-discount-input').val(0);
+    }
+
+    if (isPlanillaOficial()) {
+        $('.col-legal-oficial').show();
+    } else {
+        $('.col-legal-oficial').hide();
+        $('.legal-input').val(0);
     }
 }
 
@@ -380,18 +391,21 @@ function sumar(i, actualizar) {
     var advance = $('#advance-' + i).val();
     var otherDiscount = $('#other_discount-' + i).val();
     var remuneration = $('#remuneration-' + i).val();
-    if (discount == "") {
+    if (discount == "" || !isPlanillaOficial()) {
         discount = 0;
+        $('#discount-' + i).val(0);
     }
-    if (advance == "") {
+    if (advance == "" || !isPlanillaOficial()) {
         advance = 0;
+        $('#advance-' + i).val(0);
     }
     if (otherDiscount == "" || !isPlanillaConDescuentos()) {
         otherDiscount = 0;
         $('#other_discount-' + i).val(0);
     }
-    if (remuneration == "") {
+    if (remuneration == "" || !isPlanillaOficial()) {
         remuneration = 0;
+        $('#remuneration-' + i).val(0);
     }
 
     var total = salary - (parseFloat(advance) + parseFloat(discount) + parseFloat(otherDiscount)) + parseFloat(remuneration);

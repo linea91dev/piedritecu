@@ -35,7 +35,7 @@ $print_label = $is_bonus_detail ? 'Imprimir boletas' : 'Imprimir planilla';
                             </span> Regresar
                         </a>
                         <?php if($user_type == 1 || $permisos['reportes_planillas'] == 1):?>
-                        <a href="<?php echo $print_url;?>" class="btn btn-primary font-weight-bolder">
+                        <a href="<?php echo $print_url;?>" target="_blank" rel="noopener" class="btn btn-primary font-weight-bolder">
                             <span class="svg-icon svg-icon-md">
                                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1">
                                     <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
@@ -100,7 +100,10 @@ $print_label = $is_bonus_detail ? 'Imprimir boletas' : 'Imprimir planilla';
                     </div>
 
                     <!-- Tabla de empleados -->
-                    <?php $show_other_discount = in_array($payroll_name, array('Oficial', 'Interna'), true); ?>
+                    <?php
+                    $is_oficial = ($payroll_name === 'Oficial');
+                    $show_other_discount = in_array($payroll_name, array('Oficial', 'Interna'), true);
+                    ?>
                     <div class="table-responsive">
                         <table class="table table-bordered dataTable no-footer dtr-inline" id="kt_datatable">
                             <thead>
@@ -108,12 +111,16 @@ $print_label = $is_bonus_detail ? 'Imprimir boletas' : 'Imprimir planilla';
                                     <th>#</th>
                                     <th>Empleado</th>
                                     <th>Salario</th>
+                                    <?php if ($is_oficial): ?>
                                     <th>Descuento IGSS</th>
                                     <th>Descuentos ISR</th>
+                                    <?php endif; ?>
                                     <?php if ($show_other_discount): ?>
                                     <th>Descuentos</th>
                                     <?php endif; ?>
+                                    <?php if ($is_oficial): ?>
                                     <th>Bonificacion decreto </th>
+                                    <?php endif; ?>
                                     <th>Total</th>
                                     <th>Notas</th>
                                     <?php if($user_type == 1 || $permisos['reportes_planillas'] == 1):?>
@@ -145,17 +152,21 @@ $print_label = $is_bonus_detail ? 'Imprimir boletas' : 'Imprimir planilla';
                                     <td><?php echo $n++;?></td>
                                     <td><span class="label label-lg font-weight-bold label-light-info label-inline"><?php echo $this->crud_model->getName('admin', $emp['employee']);?></span></td>
                                     <td><?php echo $moneda.number_format($emp['salary'] ?? 0,2,'.',',');?></td>
+                                    <?php if ($is_oficial): ?>
                                     <td><?php echo $moneda.number_format($emp['discount'] ?? 0,2,'.',',');?></td>
                                     <td><?php echo $moneda.number_format($emp['advance'] ?? 0,2,'.',',');?></td>
+                                    <?php endif; ?>
                                     <?php if ($show_other_discount): ?>
                                     <td><?php echo $moneda.number_format($emp['other_discount'] ?? 0,2,'.',',');?></td>
                                     <?php endif; ?>
+                                    <?php if ($is_oficial): ?>
                                     <td><?php echo $moneda.number_format($emp['remuneration'] ?? 0,2,'.',',');?></td>
+                                    <?php endif; ?>
                                     <td><span class="text-danger font-weight-bold"><?php echo $moneda.number_format($emp['sub'] ?? 0,2,'.',',');?></span></td>
                                     <td><?php echo ($emp['note'] ?? '') != '' ? $emp['note'] : '-';?></td>
                                     <?php if($user_type == 1 || $permisos['reportes_planillas'] == 1):?>
                                     <td>
-                                        <a href="<?php echo $print_base.$emp['employee'];?>" class="btn btn-sm btn-light-primary" target="_blank">
+                                        <a href="<?php echo $print_base.$emp['employee'];?>" class="btn btn-sm btn-light-primary" target="_blank" rel="noopener">
                                             Imprimir
                                         </a>
                                     </td>
@@ -167,12 +178,16 @@ $print_label = $is_bonus_detail ? 'Imprimir boletas' : 'Imprimir planilla';
                                 <tr style="background-color: #f3f6f9;">
                                     <td colspan="2"><strong>TOTALES</strong></td>
                                     <td><strong><?php echo $moneda.number_format($total_salary,2,'.',',');?></strong></td>
+                                    <?php if ($is_oficial): ?>
                                     <td><strong><?php echo $moneda.number_format($total_discount,2,'.',',');?></strong></td>
                                     <td><strong><?php echo $moneda.number_format($total_advance,2,'.',',');?></strong></td>
+                                    <?php endif; ?>
                                     <?php if ($show_other_discount): ?>
                                     <td><strong><?php echo $moneda.number_format($total_other_discount,2,'.',',');?></strong></td>
                                     <?php endif; ?>
+                                    <?php if ($is_oficial): ?>
                                     <td><strong><?php echo $moneda.number_format($total_remuneration,2,'.',',');?></strong></td>
+                                    <?php endif; ?>
                                     <td><strong><span class="text-danger"><?php echo $moneda.number_format($total_sub,2,'.',',');?></span></strong></td>
                                     <td></td>
                                     <?php if($user_type == 1 || $permisos['reportes_planillas'] == 1):?>
