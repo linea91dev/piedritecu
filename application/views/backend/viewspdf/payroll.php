@@ -8,10 +8,12 @@
     $payroll_row = $this->db->get_where('payroll', array('payroll_id' => $ID, 'branch_id' => $branch_id))->row_array();
     $payroll_name = !empty($payroll_row['payroll_name']) ? $payroll_row['payroll_name'] : 'Oficial';
     $is_oficial = ($payroll_name === 'Oficial');
+    $is_bonus = in_array($payroll_name, array('Bono 14', 'Aguinaldo'), true);
     $show_other_discount = in_array($payroll_name, array('Oficial', 'Interna'), true);
     $payroll_title = in_array($payroll_name, array('Oficial', 'Interna'), true)
         ? 'Planilla '.strtolower($payroll_name)
         : $payroll_name;
+    $amount_label = $is_bonus ? 'Monto' : 'Sueldo';
     ?>
     <body>
         <header style="text-align: center; margin-top: -25px !important;">
@@ -81,7 +83,7 @@
                         </td>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;"
                             colspan="4">
-                            Sueldo
+                            <?php echo $amount_label; ?>
                         </td>
                         <?php if ($is_oficial): ?>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;"
@@ -144,14 +146,16 @@
                         <td colspan="3"
                             style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;padding-top:15px;font-size: 15px;">
                             <?php 
-                            $fecha = new DateTime($rows['date_start']);
+                            $row_date_start = !empty($emp['date_start']) ? $emp['date_start'] : $rows['date_start'];
+                            $fecha = new DateTime($row_date_start);
                             echo $fecha->format('d-m-Y');
                             ?>
                         </td>
                         <td colspan="4"
                             style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
                             <?php 
-                            $fecha = new DateTime($rows['date_end']);
+                            $row_date_end = !empty($emp['date_end']) ? $emp['date_end'] : $rows['date_end'];
+                            $fecha = new DateTime($row_date_end);
                             echo $fecha->format('d-m-Y');
                             ?>
                         </td>

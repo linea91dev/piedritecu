@@ -90,7 +90,7 @@ $moneda = $this->crud_model->get_info("moneda");
                                             </a>
                                             <a href="<?php echo base_url().'admin/bonos/imprimir/'.$row['payroll_id'].'/0';?>"
                                                 target="_blank" rel="noopener"
-                                                data-toggle="tooltip" title="Imprimir boletas"
+                                                data-toggle="tooltip" title="Imprimir pago"
                                                 class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1">
                                                 <i class="flaticon2-printer"></i>
                                             </a>

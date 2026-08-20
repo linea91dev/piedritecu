@@ -10918,14 +10918,13 @@ function new_change()
 
         $is_bonus = in_array($payroll_name, array('Bono 14', 'Aguinaldo'), true);
         $employee_id = (int) $post;
-        // Planilla completa (Oficial/Interna) cuando no se pide un empleado.
-        // Boleta individual si hay employee_id; bonos con /0 siguen en boletas.
-        $use_boleta = ($employee_id > 0) || $is_bonus;
+        // Resumen del pago (planilla/bono) con /0; boleta solo por empleado.
+        $use_boleta = ($employee_id > 0);
 
         if ($use_boleta) {
             $html = $this->load->view('backend/viewspdf/payroll_boleta.php', $data, TRUE);
             $pdf_label = $is_bonus
-                ? 'Boletas_'.str_replace(' ', '_', $payroll_name)
+                ? 'Boleta_'.str_replace(' ', '_', $payroll_name)
                 : 'Boleta_planilla_'.strtolower($payroll_name);
         } else {
             $html = $this->load->view('backend/viewspdf/payroll.php', $data, TRUE);
