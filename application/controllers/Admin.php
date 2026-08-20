@@ -2504,10 +2504,6 @@ class Admin extends CI_Controller
 
             $payroll_id = $this->crud_model->create_payroll();
             $this->session->set_flashdata('flash_message', "Pago de ".$payroll_name." registrado correctamente.");
-            if (in_array($payroll_name, array('Bono 14', 'Aguinaldo'), true) && $payroll_id) {
-                redirect(base_url() . 'admin/bonos/imprimir/'.$payroll_id.'/0', 'refresh');
-                return;
-            }
             redirect(base_url() . 'admin/bonos/', 'refresh');
         }
 
