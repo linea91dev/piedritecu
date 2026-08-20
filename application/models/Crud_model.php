@@ -5491,10 +5491,48 @@ function new_change()
             return 0;
         }
 
-        return (int) $start->diff($end)->days + 1;
+        // Diferencia exacta (sin +1): un año aniversario = 365 días (366 si hay bisiesto).
+        // Con +1 un período 19/08/2023 → 19/08/2024 daba 367.
+        return (int) $start->diff($end)->days;
     }
 
-    function calculate_vacation_days($date_start, $date_end, $hiring_date = null)
+    function get_used_vacation_days($employee_id, $exclude_vacation_id = null)
+    {
+        $employee_id = (int) $employee_id;
+        if ($employee_id <= 0) {
+            return 0.0;
+        }
+
+        $this->db->select_sum('days');
+        $this->db->from('vacations');
+        $this->db->where('employee_id', $employee_id);
+        $this->db->where('status', 1);
+        if (!empty($exclude_vacation_id)) {
+            $this->db->where('vacation_id !=', (int) $exclude_vacation_id);
+        }
+        $row = $this->db->get()->row();
+        return $row && $row->days !== null ? (float) $row->days : 0.0;
+    }
+
+    function get_employee_vacation_history($employee_id, $exclude_vacation_id = null)
+    {
+        $employee_id = (int) $employee_id;
+        if ($employee_id <= 0) {
+            return array();
+        }
+
+        $this->db->from('vacations');
+        $this->db->where('employee_id', $employee_id);
+        $this->db->where('status', 1);
+        if (!empty($exclude_vacation_id)) {
+            $this->db->where('vacation_id !=', (int) $exclude_vacation_id);
+        }
+        $this->db->order_by('date_end', 'DESC');
+        $this->db->order_by('vacation_id', 'DESC');
+        return $this->db->get()->result_array();
+    }
+
+    function calculate_vacation_days($date_start, $date_end, $hiring_date = null, $employee_id = null, $exclude_vacation_id = null)
     {
         $effective_start = $date_start;
         if (!empty($hiring_date)) {
@@ -5514,8 +5552,14 @@ function new_change()
             return 0;
         }
 
-        // Caso 1: días proporcionales = (días trabajados × 15) / 365
-        return round(($worked_days * 15) / 365, 3);
+        // Días acumulados = (días trabajados × 15) / 365
+        $accrued = round(($worked_days * 15) / 365, 3);
+        $used = 0.0;
+        if (!empty($employee_id)) {
+            $used = $this->get_used_vacation_days($employee_id, $exclude_vacation_id);
+        }
+
+        return round(max(0, $accrued - $used), 3);
     }
 
     function calculate_vacation_amount($monthly_salary, $vacation_days)
@@ -5550,7 +5594,7 @@ function new_change()
             $date_start = $hiring;
         }
 
-        $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring);
+        $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring, $employee_id);
         $amount = ($type === 'Pagada')
             ? $this->calculate_vacation_amount($salary, $vacation_days)
             : 0;
@@ -5593,7 +5637,7 @@ function new_change()
             $date_start = $hiring;
         }
 
-        $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring);
+        $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring, $employee_id, $ID);
         $amount = ($type === 'Pagada')
             ? $this->calculate_vacation_amount($salary, $vacation_days)
             : 0;

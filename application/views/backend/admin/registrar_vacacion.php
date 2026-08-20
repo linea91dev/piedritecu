@@ -1,7 +1,30 @@
 <?php
 $user_id = $this->session->userdata("login_user_id");
 $moneda = $this->crud_model->get_info("moneda");
+$branch = $this->session->userdata('branch_id');
 $employees = $this->db->order_by('name', 'ASC')->get_where('admin', array('status' => 1, 'job !=' => 0))->result_array();
+
+$used_by_employee = array();
+$history_by_employee = array();
+$vac_rows = $this->db->order_by('date_end', 'DESC')
+    ->get_where('vacations', array('branch_id' => $branch, 'status' => 1))
+    ->result_array();
+foreach ($vac_rows as $vac) {
+    $eid = (int) $vac['employee_id'];
+    if (!isset($used_by_employee[$eid])) {
+        $used_by_employee[$eid] = 0;
+        $history_by_employee[$eid] = array();
+    }
+    $used_by_employee[$eid] += (float) $vac['days'];
+    $history_by_employee[$eid][] = array(
+        'id' => (int) $vac['vacation_id'],
+        'date_start' => $vac['date_start'],
+        'date_end' => $vac['date_end'],
+        'days' => (float) $vac['days'],
+        'type' => $vac['type'],
+        'amount' => (float) $vac['amount'],
+    );
+}
 ?>
 <div class="container-fluid">
     <div class="row">
@@ -11,14 +34,14 @@ $employees = $this->db->order_by('name', 'ASC')->get_where('admin', array('statu
                     <div class="card-title">
                         <h3 class="card-label">Registrar vacación
                             <span class="d-block text-muted pt-2 font-size-sm">
-                                Días proporcionales: (días trabajados × 15) / 365. Monto pagado: días × (salario / 30).
+                                Acumulados: (días trabajados × 15) / 365. Se restan los días ya gozados o pagados. Monto: días × (salario / 30).
                             </span>
                         </h3>
                     </div>
                     <div class="card-toolbar">
                         <div class="alert alert-blue">
                             <span class="d-block pt-2 font-size-sm">
-                                El cálculo parte desde la fecha de contratación del empleado. Si el período inicia antes, se ajusta automáticamente.
+                                El cálculo parte desde la fecha de contratación. Un año completo cuenta 365 días (sin sumar un día extra).
                             </span>
                         </div>
                     </div>
@@ -42,10 +65,13 @@ $employees = $this->db->order_by('name', 'ASC')->get_where('admin', array('statu
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($employees as $employee):
                                             $hiring = !empty($employee['hiring']) ? date('Y-m-d', strtotime($employee['hiring'])) : '';
+                                            $eid = (int) $employee['admin_id'];
+                                            $used = isset($used_by_employee[$eid]) ? $used_by_employee[$eid] : 0;
                                         ?>
-                                        <option value="<?php echo $employee['admin_id']; ?>"
+                                        <option value="<?php echo $eid; ?>"
                                             data-salary="<?php echo (float) $employee['salary']; ?>"
-                                            data-hiring="<?php echo htmlspecialchars($hiring, ENT_QUOTES, 'UTF-8'); ?>">
+                                            data-hiring="<?php echo htmlspecialchars($hiring, ENT_QUOTES, 'UTF-8'); ?>"
+                                            data-used="<?php echo number_format($used, 3, '.', ''); ?>">
                                             <?php echo $employee['name'].' '.$employee['last_name']; ?>
                                         </option>
                                         <?php endforeach; ?>
@@ -82,18 +108,33 @@ $employees = $this->db->order_by('name', 'ASC')->get_where('admin', array('statu
                                 </div>
                             </div>
 
-                            <div class="col-sm-3">
+                            <div class="col-sm-2">
                                 <div class="form-group">
                                     <label>Días trabajados</label>
                                     <input type="number" class="form-control" id="worked_days" value="0" readonly>
                                 </div>
                             </div>
 
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    <label>Días acumulados</label>
+                                    <input type="number" step="0.001" class="form-control" id="accrued_days" value="0" readonly>
+                                    <small class="text-muted">(días × 15) / 365</small>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-2">
+                                <div class="form-group">
+                                    <label>Ya gozados/pagados</label>
+                                    <input type="number" step="0.001" class="form-control" id="used_days" value="0" readonly>
+                                </div>
+                            </div>
+
                             <div class="col-sm-3">
                                 <div class="form-group">
-                                    <label>Días de vacación</label>
+                                    <label>Días disponibles</label>
                                     <input type="number" step="0.001" class="form-control" name="days" id="days" value="0" readonly>
-                                    <small class="text-muted">(días × 15) / 365</small>
+                                    <small class="text-muted">Acumulados − historial</small>
                                 </div>
                             </div>
 
@@ -101,7 +142,7 @@ $employees = $this->db->order_by('name', 'ASC')->get_where('admin', array('statu
                                 <div class="form-group">
                                     <label>Monto a pagar (<?php echo $moneda; ?>)</label>
                                     <input type="number" step="0.01" min="0" class="form-control" name="amount" id="amount" value="0" readonly>
-                                    <small>días de vacación × (salario / 30)</small>
+                                    <small>días disponibles × (salario / 30)</small>
                                 </div>
                             </div>
 
@@ -129,6 +170,27 @@ $employees = $this->db->order_by('name', 'ASC')->get_where('admin', array('statu
                                     <textarea class="form-control" name="note" rows="3" placeholder="Observaciones del periodo de vacaciones"></textarea>
                                 </div>
                             </div>
+
+                            <div class="col-sm-12" id="vacation_history_wrap" style="display:none;">
+                                <div class="form-group">
+                                    <label>Historial de vacaciones del empleado</label>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Desde</th>
+                                                    <th>Hasta</th>
+                                                    <th>Tipo</th>
+                                                    <th>Días</th>
+                                                    <th>Monto</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="vacation_history_body">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="modal-footer">
@@ -145,6 +207,7 @@ $employees = $this->db->order_by('name', 'ASC')->get_where('admin', array('statu
 
 <script type="text/javascript">
 var moneda = '<?php echo $moneda; ?>';
+var vacationHistory = <?php echo json_encode($history_by_employee); ?>;
 
 function parseDate(value) {
     var parts = (value || '').split('-');
@@ -165,12 +228,44 @@ function formatDateUTC(date) {
     return y + '-' + m + '-' + d;
 }
 
+function formatDisplayDate(value) {
+    var parts = (value || '').split('-');
+    if (parts.length !== 3) return value || '-';
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+
 function getSelectedEmployee() {
     var option = $('#employee_id option:selected');
     return {
+        id: option.val() || '',
         salary: parseFloat(option.attr('data-salary')) || 0,
-        hiring: option.attr('data-hiring') || ''
+        hiring: option.attr('data-hiring') || '',
+        used: parseFloat(option.attr('data-used')) || 0
     };
+}
+
+function renderVacationHistory(employeeId) {
+    var rows = vacationHistory[employeeId] || vacationHistory[String(employeeId)] || [];
+    var body = $('#vacation_history_body');
+    body.empty();
+
+    if (!employeeId || !rows.length) {
+        $('#vacation_history_wrap').hide();
+        return;
+    }
+
+    rows.forEach(function(row) {
+        body.append(
+            '<tr>' +
+                '<td>' + formatDisplayDate(row.date_start) + '</td>' +
+                '<td>' + formatDisplayDate(row.date_end) + '</td>' +
+                '<td>' + row.type + '</td>' +
+                '<td>' + Number(row.days).toFixed(3) + '</td>' +
+                '<td>' + moneda + Number(row.amount).toFixed(2) + '</td>' +
+            '</tr>'
+        );
+    });
+    $('#vacation_history_wrap').show();
 }
 
 function onEmployeeChange() {
@@ -185,6 +280,7 @@ function onEmployeeChange() {
     } else {
         $('#hiring_hint').html('Sin fecha de contratación registrada.');
     }
+    renderVacationHistory(emp.id);
     recalcularVacacion();
 }
 
@@ -204,6 +300,8 @@ function recalcularVacacion() {
 
     if (!start || !end) {
         $('#worked_days').val(0);
+        $('#accrued_days').val(0);
+        $('#used_days').val(emp.used.toFixed(3));
         $('#days').val(0);
         $('#amount').val('0.00');
         return;
@@ -220,20 +318,27 @@ function recalcularVacacion() {
     if (end < start) {
         $('#date_error').html('La fecha final debe ser igual o posterior a la fecha de inicio.');
         $('#worked_days').val(0);
+        $('#accrued_days').val(0);
+        $('#used_days').val(emp.used.toFixed(3));
         $('#days').val(0);
         $('#amount').val('0.00');
         $('#submit_vacation').attr('disabled', 'disabled');
         return;
     }
 
-    var workedDays = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
-    var vacationDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
+    // Sin +1: un año aniversario = 365 días.
+    var workedDays = Math.floor((end.getTime() - start.getTime()) / 86400000);
+    var accruedDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
+    var usedDays = emp.used;
+    var vacationDays = Math.round((Math.max(0, accruedDays - usedDays) + Number.EPSILON) * 1000) / 1000;
     var amount = 0;
     if (isPagada) {
         amount = Math.round(((vacationDays * (emp.salary / 30)) + Number.EPSILON) * 100) / 100;
     }
 
     $('#worked_days').val(workedDays);
+    $('#accrued_days').val(accruedDays.toFixed(3));
+    $('#used_days').val(usedDays.toFixed(3));
     $('#days').val(vacationDays.toFixed(3));
     $('#amount').val(amount.toFixed(2));
     $('#submit_vacation').removeAttr('disabled');
