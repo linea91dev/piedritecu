@@ -136,6 +136,12 @@ $can_status = ($user_type == 1 || !empty($permisos['estado_vacaciones']));
                                                 class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            <a href="<?php echo base_url().'admin/vacaciones/imprimir/'.$row['vacation_id']; ?>"
+                                                target="_blank" rel="noopener"
+                                                data-toggle="tooltip" title="Imprimir comprobante"
+                                                class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1">
+                                                <i class="fas fa-print"></i>
+                                            </a>
                                             <?php if ($row['status'] == 1 && $can_edit): ?>
                                             <a href="javascript:;"
                                                 onclick="showAjaxModal('<?php echo base_url().'modal/popup/editar_vacacion/'.$row['vacation_id']; ?>');"

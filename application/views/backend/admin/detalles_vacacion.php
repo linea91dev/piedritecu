@@ -17,8 +17,13 @@ $vacation = $this->db->get_where('vacations', array('vacation_id' => $vacation_i
                         </h3>
                     </div>
                     <div class="card-toolbar">
-                        <a href="<?php echo base_url().'admin/vacaciones'; ?>" class="btn btn-secondary font-weight-bolder">
+                        <a href="<?php echo base_url().'admin/vacaciones'; ?>" class="btn btn-secondary font-weight-bolder mr-2">
                             Regresar
+                        </a>
+                        <a href="<?php echo base_url().'admin/vacaciones/imprimir/'.$vacation_id; ?>"
+                            target="_blank" rel="noopener"
+                            class="btn btn-primary font-weight-bolder">
+                            Imprimir comprobante
                         </a>
                     </div>
                 </div>

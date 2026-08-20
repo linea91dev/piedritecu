@@ -2600,6 +2600,12 @@ class Admin extends CI_Controller
             return;
         }
 
+        if ($param1 == 'imprimir') {
+            $this->ver_permisos('vacaciones');
+            $this->crud_model->imprimir_vacation($param2);
+            return;
+        }
+
         $page_data['page_name']  = 'vacaciones';
         $page_data['page_title'] = "Control de Vacaciones";
         $this->load->view('backend/index', $page_data);

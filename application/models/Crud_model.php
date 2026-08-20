@@ -10984,6 +10984,20 @@ function new_change()
         $mpdf->WriteHTML($html, 2);
         $mpdf->Output($pdfFilePath, "I");
     }
+
+    public function imprimir_vacation($ID)
+    {
+        $data = array(
+            'ID' => (int) $ID,
+        );
+        $html = $this->load->view('backend/viewspdf/vacation.php', $data, TRUE);
+        $pdfFilePath = 'Comprobante_vacaciones-'.$ID.'-'.date('d/m/Y H:i:s').'.pdf';
+        $this->load->library('M_pdf');
+        $mpdf = new mPDF('utf-8', 'A4');
+        $mpdf->packTableData = true;
+        $mpdf->WriteHTML($html, 2);
+        $mpdf->Output($pdfFilePath, 'I');
+    }
     
     public function downloadPDFplanilla()
     {
