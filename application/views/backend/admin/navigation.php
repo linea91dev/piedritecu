@@ -453,7 +453,7 @@
                             </div>
                         </li>
                         <?php endif; if($user_type == 1 || ($permisos['contabilidad'] == 1 && ($permisos['ingresos'] == 1 || $permisos['ver_egresos'] == 1 || $permisos['planillas'] == 1 || !empty($permisos['vacaciones']) || $permisos['cuentas_bancarias'] == 1 || $permisos['ver_cortes'] == 1 || $permisos['historial_fel'] == 1))):?>
-                        <li class="menu-item menu-item-submenu menu-item-rel <?php if($page_name == 'ingresos' ||  $page_name == 'historial_fel' || $page_name == 'detalles_ingreso' || $page_name == 'egresos' || $page_name == 'detalles_egreso' || $page_name == 'planillas' || $page_name == 'bonos' || $page_name == 'pagar_bonos' || $page_name == 'vacaciones' || $page_name == 'registrar_vacacion' || $page_name == 'detalles_vacacion' || $page_name == 'cuentas_bancarias' || $page_name == 'historial_cortes' || $page_name == 'pagar_planillas'  ) echo 'menu-item-active';?>" data-menu-toggle="click" aria-haspopup="true">
+                        <li class="menu-item menu-item-submenu menu-item-rel <?php if($page_name == 'ingresos' ||  $page_name == 'historial_fel' || $page_name == 'detalles_ingreso' || $page_name == 'egresos' || $page_name == 'detalles_egreso' || $page_name == 'planillas' || $page_name == 'bonos' || $page_name == 'pagar_bonos' || $page_name == 'horas_extras' || $page_name == 'pagar_horas_extras' || $page_name == 'detalles_horas_extras' || $page_name == 'vacaciones' || $page_name == 'registrar_vacacion' || $page_name == 'detalles_vacacion' || $page_name == 'cuentas_bancarias' || $page_name == 'historial_cortes' || $page_name == 'pagar_planillas'  ) echo 'menu-item-active';?>" data-menu-toggle="click" aria-haspopup="true">
                             <a href="javascript:;" class="menu-link menu-toggle">
                                 <span class="menu-text">Contabilidad</span>
                                 <span class="menu-desc"></span>
@@ -494,6 +494,14 @@
                                                 <i class="flaticon-gift"></i>
                                             </span>
                                             <span class="menu-text">Bono 14 / Aguinaldo</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item menu-item-submenu" data-menu-toggle="hover" aria-haspopup="true">
+                                        <a href="<?php echo base_url();?>admin/horas_extras/" class="menu-link">
+                                            <span class="svg-icon menu-icon">
+                                                <i class="flaticon-clock-2"></i>
+                                            </span>
+                                            <span class="menu-text">Horas extras / Viáticos</span>
                                         </a>
                                     </li>
                                     <?php endif; if($user_type == 1 || !empty($permisos['vacaciones'])):?>

@@ -2558,6 +2558,82 @@ class Admin extends CI_Controller
         $this->load->view('backend/index', $page_data);
     }
 
+    function horas_extras($param1 = '', $param2 = '')
+    {
+        $this->admin_login();
+        $this->ver_permisos('planillas');
+
+        if ($param1 == 'create') {
+            $this->ver_permisos('pagar_planillas');
+
+            $date_start = $this->input->post('date_start');
+            $date_end   = $this->input->post('date_end');
+            $start      = DateTime::createFromFormat('Y-m-d', $date_start);
+            $end        = DateTime::createFromFormat('Y-m-d', $date_end);
+
+            if (!$start || !$end || $start->format('Y-m-d') !== $date_start || $end->format('Y-m-d') !== $date_end || $end < $start) {
+                $this->session->set_flashdata('flash_error', "El rango de fechas no es válido.");
+                redirect(base_url() . 'admin/pagar_horas_extras/', 'refresh');
+                return;
+            }
+
+            $payroll_id = $this->crud_model->create_overtime_payroll();
+            if (!$payroll_id) {
+                $this->session->set_flashdata('flash_error', "Debes ingresar horas o viáticos con total mayor a cero.");
+                redirect(base_url() . 'admin/pagar_horas_extras/', 'refresh');
+                return;
+            }
+
+            $this->session->set_flashdata('flash_message', "Planilla de horas extras registrada correctamente.");
+            redirect(base_url() . 'admin/horas_extras/', 'refresh');
+            return;
+        }
+
+        if ($param1 == 'delete') {
+            $this->ver_permisos('estado_planillas');
+            $this->crud_model->delete_payroll($param2);
+            $this->session->set_flashdata('flash_message', "Planilla desactivada correctamente.");
+            redirect(base_url() . 'admin/horas_extras/', 'refresh');
+            return;
+        }
+
+        if ($param1 == 'active') {
+            $this->ver_permisos('estado_planillas');
+            $this->crud_model->active_payroll($param2);
+            $this->session->set_flashdata('flash_message', "Planilla reactivada correctamente.");
+            redirect(base_url() . 'admin/horas_extras/', 'refresh');
+            return;
+        }
+
+        if ($param1 == 'imprimir') {
+            $this->ver_permisos('reportes_planillas');
+            $this->crud_model->imprimir_overtime_payroll($param2);
+            return;
+        }
+
+        if ($param1 == 'detalle') {
+            $page_data['page_name']  = 'detalles_horas_extras';
+            $page_data['page_title'] = "Detalle de horas extras";
+            $page_data['payroll_id'] = $param2;
+            $this->load->view('backend/index', $page_data);
+            return;
+        }
+
+        $page_data['page_name']  = 'horas_extras';
+        $page_data['page_title'] = "Horas extras y viáticos";
+        $this->load->view('backend/index', $page_data);
+    }
+
+    function pagar_horas_extras()
+    {
+        $this->admin_login();
+        $this->ver_permisos('pagar_planillas');
+
+        $page_data['page_name']  = 'pagar_horas_extras';
+        $page_data['page_title'] = "Pagar horas extras y viáticos";
+        $this->load->view('backend/index', $page_data);
+    }
+
     function vacaciones($param1 = '', $param2 = '')
     {
         $this->admin_login();

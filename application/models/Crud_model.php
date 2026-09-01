@@ -5486,6 +5486,133 @@ function new_change()
         return $payroll_id;
     }
 
+    function create_overtime_payroll()
+    {
+        $branch_id = $this->session->userdata('branch_id');
+        $datetime = date('Y-m-d H:i:s');
+
+        $data['type'] = 2;
+        $data['payroll_name'] = 'Horas extras';
+        $data['date_start'] = date('Y-m-d', strtotime($this->input->post('date_start')));
+        $data['date_end']   = date('Y-m-d', strtotime($this->input->post('date_end')));
+        $data['month_pay']  = date('Y-m', strtotime($data['date_start']));
+        $data['datetime']   = $datetime;
+        $data['week']       = date('W');
+        $data['month']      = date('m');
+        $data['year']       = date('Y');
+        $data['note']       = trim((string) $this->input->post('note'));
+
+        $employee     = $this->input->post('employee');
+        $hours        = $this->input->post('hours');
+        $hour_cost    = $this->input->post('hour_cost');
+        $viatico_days = $this->input->post('viatico_days');
+        $viatico_cost = $this->input->post('viatico_cost');
+        $row_note     = $this->input->post('row_note');
+
+        $sueldo = array();
+        $payroll_total = 0;
+        $num = is_array($employee) ? count($employee) : 0;
+
+        for ($i = 0; $i < $num; $i++) {
+            $hours_value = max(0, (float) (isset($hours[$i]) ? $hours[$i] : 0));
+            $hour_cost_value = max(0, (float) (isset($hour_cost[$i]) ? $hour_cost[$i] : 0));
+            $viatico_days_value = max(0, (float) (isset($viatico_days[$i]) ? $viatico_days[$i] : 0));
+            $viatico_cost_value = max(0, (float) (isset($viatico_cost[$i]) ? $viatico_cost[$i] : 0));
+
+            $overtime_total = round($hours_value * $hour_cost_value, 2);
+            $viatico_total = round($viatico_days_value * $viatico_cost_value, 2);
+            $sub_value = round($overtime_total + $viatico_total, 2);
+
+            if ($sub_value <= 0) {
+                continue;
+            }
+
+            $payroll_total += $sub_value;
+            $sueldo[] = array(
+                'employee'       => $employee[$i],
+                'hours'          => $hours_value,
+                'hour_cost'      => $hour_cost_value,
+                'overtime_total' => $overtime_total,
+                'viatico_days'   => $viatico_days_value,
+                'viatico_cost'   => $viatico_cost_value,
+                'viatico_total'  => $viatico_total,
+                'salary'         => $overtime_total,
+                'discount'       => 0,
+                'advance'        => 0,
+                'other_discount' => 0,
+                'remuneration'   => $viatico_total,
+                'sub'            => $sub_value,
+                'note'           => isset($row_note[$i]) ? $row_note[$i] : '',
+                'date_start'     => $data['date_start'],
+                'date_end'       => $data['date_end'],
+            );
+        }
+
+        if (empty($sueldo) || $payroll_total <= 0) {
+            return false;
+        }
+
+        $data['num_employee'] = count($sueldo);
+        $data['employee']     = json_encode($sueldo);
+        $data['bank']         = $this->input->post('bank');
+        $data['responsable']  = $this->input->post('responsable');
+        $data['branch_id']    = $branch_id;
+        $data['total']        = round($payroll_total, 2);
+        $this->db->insert('payroll', $data);
+        $payroll_id = $this->db->insert_id();
+
+        if ($data['bank'] == 0) {
+            $cuenta = $this->db->get_where('account_bank', array('bank_id' => $data['bank'], 'branch_id' => $branch_id, 'status' => 1))->row_array();
+        } else {
+            $cuenta = $this->db->get_where('account_bank', array('account_bank_id' => $data['bank']))->row_array();
+        }
+
+        $data3 = array();
+        $data3['reference_id']    = $payroll_id;
+        $data3['table_reference'] = 'payroll';
+        $data3['saldo_inicial']   = $cuenta['current_balance'];
+        $saldo = $cuenta['current_balance'] - $data['total'];
+        $data3['nuevo_saldo']     = $saldo;
+        $data2['current_balance'] = $saldo;
+
+        $this->db->where('account_bank_id', $cuenta['account_bank_id']);
+        $this->db->update('account_bank', $data2);
+
+        $data3['provider']    = 'Planillas';
+        $data3['date']        = date('Y-m-d');
+        $data3['week']        = date('W');
+        $data3['month']       = date('m');
+        $data3['year']        = date('Y');
+        $data3['amount']      = $data['total'];
+        $data3['responsable'] = $this->input->post('responsable');
+        $data3['origin']      = $this->input->post('bank');
+        $data3['details']     = 'Pago de horas extras y viáticos del '.$data['date_start'].' al '.$data['date_end']
+            .(!empty($data['note']) ? ' - '.$data['note'] : '');
+        $data3['datetime']    = $datetime;
+        $data3['admin_id']    = $this->session->userdata('login_user_id');
+        $data3['branch_id']   = $branch_id;
+        $data3['status']      = 1;
+        $this->db->insert('expense', $data3);
+
+        $message = 'Ha creado un pago de horas extras y viáticos';
+        $this->insert_binnacle($message);
+        $this->insert_notification($message, base64_encode('admin/horas_extras/'), 'planillas', 'Horas extras');
+
+        return $payroll_id;
+    }
+
+    function imprimir_overtime_payroll($ID)
+    {
+        $data = array('ID' => (int) $ID);
+        $html = $this->load->view('backend/viewspdf/horas_extras.php', $data, TRUE);
+        $pdfFilePath = 'Planilla_horas_extras-'.$ID.'-'.date('d/m/Y H:i:s').'.pdf';
+        $this->load->library('M_pdf');
+        $mpdf = new mPDF('utf-8', 'A4-L');
+        $mpdf->packTableData = true;
+        $mpdf->WriteHTML($html, 2);
+        $mpdf->Output($pdfFilePath, 'I');
+    }
+
     function calculate_vacation_worked_days($date_start, $date_end)
     {
         try {
