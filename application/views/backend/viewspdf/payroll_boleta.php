@@ -129,6 +129,9 @@ if (!$payroll) {
                 <?php echo date('d/m/Y', strtotime($date_start)).' - '.date('d/m/Y', strtotime($date_end)); ?><br>
                 <b>Origen:</b> <?php echo htmlspecialchars($origin_label, ENT_QUOTES, 'UTF-8'); ?><br>
                 <b>Responsable:</b> <?php echo htmlspecialchars($responsable, ENT_QUOTES, 'UTF-8'); ?>
+                <?php if (!$is_bonus && !empty($emp['payment_method'])): ?>
+                <br><b>Método de pago:</b> <?php echo htmlspecialchars($emp['payment_method'], ENT_QUOTES, 'UTF-8'); ?>
+                <?php endif; ?>
             </td>
         </tr>
     </table>

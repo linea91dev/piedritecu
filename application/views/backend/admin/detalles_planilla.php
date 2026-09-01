@@ -122,6 +122,7 @@ $print_label = $is_bonus_detail ? 'Imprimir pago' : 'Imprimir planilla';
                                     <th>Bonificacion decreto </th>
                                     <?php endif; ?>
                                     <th>Total</th>
+                                    <th>Método de pago</th>
                                     <th>Notas</th>
                                     <?php if($user_type == 1 || $permisos['reportes_planillas'] == 1):?>
                                     <th>Boleta</th>
@@ -147,6 +148,7 @@ $print_label = $is_bonus_detail ? 'Imprimir pago' : 'Imprimir planilla';
                                     $total_other_discount += floatval($emp['other_discount'] ?? 0);
                                     $total_remuneration += floatval($emp['remuneration'] ?? 0);
                                     $total_sub += floatval($emp['sub'] ?? 0);
+                                    $pay_method = !empty($emp['payment_method']) ? $emp['payment_method'] : '-';
                                 ?>
                                 <tr>
                                     <td><?php echo $n++;?></td>
@@ -163,6 +165,11 @@ $print_label = $is_bonus_detail ? 'Imprimir pago' : 'Imprimir planilla';
                                     <td><?php echo $moneda.number_format($emp['remuneration'] ?? 0,2,'.',',');?></td>
                                     <?php endif; ?>
                                     <td><span class="text-danger font-weight-bold"><?php echo $moneda.number_format($emp['sub'] ?? 0,2,'.',',');?></span></td>
+                                    <td>
+                                        <span class="label label-lg font-weight-bold label-light-primary label-inline">
+                                            <?php echo htmlspecialchars($pay_method, ENT_QUOTES, 'UTF-8'); ?>
+                                        </span>
+                                    </td>
                                     <td><?php echo ($emp['note'] ?? '') != '' ? $emp['note'] : '-';?></td>
                                     <?php if($user_type == 1 || $permisos['reportes_planillas'] == 1):?>
                                     <td>
@@ -189,6 +196,7 @@ $print_label = $is_bonus_detail ? 'Imprimir pago' : 'Imprimir planilla';
                                     <td><strong><?php echo $moneda.number_format($total_remuneration,2,'.',',');?></strong></td>
                                     <?php endif; ?>
                                     <td><strong><span class="text-danger"><?php echo $moneda.number_format($total_sub,2,'.',',');?></span></strong></td>
+                                    <td></td>
                                     <td></td>
                                     <?php if($user_type == 1 || $permisos['reportes_planillas'] == 1):?>
                                     <td></td>

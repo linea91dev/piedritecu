@@ -5366,12 +5366,14 @@ function new_change()
         $salary_posted = $this->input->post('salary');
         $emp_date_start = $this->input->post('emp_date_start');
         $emp_date_end   = $this->input->post('emp_date_end');
+        $payment_method = $this->input->post('payment_method');
         $note         = $this->input->post('note');
         $num_empleados = sizeof($employee);
         $sueldo  = array();
         $payroll_total = 0;
         $is_bonus = in_array($data['payroll_name'], array('Bono 14', 'Aguinaldo'), true);
         $has_other_discount = in_array($data['payroll_name'], array('Oficial', 'Interna'), true);
+        $allowed_payment_methods = array('Cheque', 'Electrónico', 'Efectivo');
         $bonus_min_start = null;
         $bonus_max_end = null;
         for ($i=0; $i < $num_empleados ; $i++) {
@@ -5406,6 +5408,11 @@ function new_change()
                 $sub_value            = round($salary_value - $discount_value - $advance_value - $other_discount_value + $remuneration_value, 2);
                 $payroll_total       += $sub_value;
 
+                $method_value = isset($payment_method[$i]) ? $payment_method[$i] : 'Electrónico';
+                if (!in_array($method_value, $allowed_payment_methods, true)) {
+                    $method_value = 'Electrónico';
+                }
+
                 $new_sueldo = array(
                     'employee'       => $employee[$i],
                     'salary'         => $salary_value,
@@ -5414,6 +5421,7 @@ function new_change()
                     'other_discount' => $other_discount_value,
                     'remuneration'   => $remuneration_value,
                     'sub'            => $sub_value,
+                    'payment_method' => $method_value,
                     'note'           => isset($note[$i]) ? $note[$i] : '',
                     'date_start'     => $row_start,
                     'date_end'       => $row_end
@@ -5789,6 +5797,7 @@ function new_change()
         $advance      = $this->input->post('advance');
         $other_discount = $this->input->post('other_discount');
         $remuneration = $this->input->post('remuneration');
+        $payment_method = $this->input->post('payment_method');
         $note         = $this->input->post('note');
         $sub          = $this->input->post('sub');
 
@@ -5797,9 +5806,14 @@ function new_change()
         $sueldo  = array();
         $payroll_name_post = $this->input->post('payroll_name');
         $has_other_discount = in_array($payroll_name_post, array('Oficial', 'Interna'), true);
+        $allowed_payment_methods = array('Cheque', 'Electrónico', 'Efectivo');
 
         for ($i=0; $i < $num_empleados ; $i++) {
                 $other_discount_value = $has_other_discount ? max(0, (float) (isset($other_discount[$i]) ? $other_discount[$i] : 0)) : 0;
+                $method_value = isset($payment_method[$i]) ? $payment_method[$i] : 'Electrónico';
+                if (!in_array($method_value, $allowed_payment_methods, true)) {
+                    $method_value = 'Electrónico';
+                }
                 $new_sueldo = array(
                     'employee'       => $employee[$i],
                     'salary'         => $salary[$i],
@@ -5808,6 +5822,7 @@ function new_change()
                     'other_discount' => $other_discount_value,
                     'remuneration'   => $remuneration[$i],
                     'sub'            => $sub[$i],
+                    'payment_method' => $method_value,
                     'note'           => $note[$i]
                 );
                 array_push($sueldo, $new_sueldo);

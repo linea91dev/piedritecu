@@ -138,6 +138,7 @@ $planilla = $this->crud_model->get_info("planilla");
                                                 <th class="col-descuento-oficial" style="display:none;">Descuentos</th>
                                                 <th class="col-legal-oficial">Bonificación decreto</th>
                                                 <th>Total</th>
+                                                <th>Método de pago</th>
                                                 <th>Notas</th>
                                             </tr>
                                         </thead>
@@ -194,6 +195,13 @@ $planilla = $this->crud_model->get_info("planilla");
                                                         id='subh-<?php echo $_id;?>'
                                                         value='<?php echo $salario;?>'>
                                                 </td>
+                                                <td>
+                                                    <select class="form-control" name="payment_method[]" style="min-width:120px;" required>
+                                                        <option value="Electrónico" selected>Electrónico</option>
+                                                        <option value="Cheque">Cheque</option>
+                                                        <option value="Efectivo">Efectivo</option>
+                                                    </select>
+                                                </td>
                                                 <td><textarea rows="1" class="form-control" name='note[]'></textarea>
                                                 </td>
                                             </tr>
@@ -208,6 +216,7 @@ $planilla = $this->crud_model->get_info("planilla");
                                                 <td class="col-descuento-oficial" style="display:none;"></td>
                                                 <td class="col-legal-oficial"></td>
                                                 <td class="text-right"></td>
+                                                <td></td>
                                                 <td class="text-right">
                                                     <h4><b>TOTAL PLANILLA</b><br> 
                                                         <span class="text-danger"id="total"></span>

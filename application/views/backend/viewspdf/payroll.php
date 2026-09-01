@@ -111,6 +111,12 @@
                             colspan="4">
                             Total
                         </td>
+                        <?php if (!$is_bonus): ?>
+                        <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;"
+                            colspan="4">
+                            Método de pago
+                        </td>
+                        <?php endif; ?>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;"
                             colspan="4">
                             Notas
@@ -206,6 +212,12 @@
                             style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
                             <?php echo $moneda.$emp['sub'];?>
                         </td>
+                        <?php if (!$is_bonus): ?>
+                        <td colspan="4"
+                            style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
+                            <?php echo htmlspecialchars(!empty($emp['payment_method']) ? $emp['payment_method'] : '-', ENT_QUOTES, 'UTF-8');?>
+                        </td>
+                        <?php endif; ?>
                         <td style="padding:15px;font-size: 12px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;text-align:left"
                             colspan="4">
                             <?php echo $emp['note'];?>
@@ -250,6 +262,11 @@
                         <td colspan="4" style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 14px; text-align:center; background: #ddd;">
                             <?php echo $moneda.number_format($total_sub,2,'.',',');?>
                         </td>
+                        <?php if (!$is_bonus): ?>
+                        <td colspan="4" style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #ddd;font-size: 14px;">
+                            
+                        </td>
+                        <?php endif; ?>
                         <td style="padding:15px;font-size: 12px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;background: #ddd;"
                             colspan="4">
                             

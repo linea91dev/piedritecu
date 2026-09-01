@@ -127,11 +127,18 @@
                             <th>Bonificación decreto</th>
                             <?php endif; ?>
                             <th>Total</th>
+                            <th>Método de pago</th>
                             <th>Notas</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php for ($i=0; $i < $row['num_employee'] ; $i++) :?>
+                        <?php
+                        $current_method = isset($employee[$i]['payment_method']) ? $employee[$i]['payment_method'] : 'Electrónico';
+                        if (!in_array($current_method, array('Cheque', 'Electrónico', 'Efectivo'), true)) {
+                            $current_method = 'Electrónico';
+                        }
+                        ?>
                         <?php if($i == $param3):?>
                         <tr>
                             <td>
@@ -181,6 +188,13 @@
                                 <input type="hidden" name="sub[]" class='total-' id='subh--<?php echo $_id;?>'
                                     value='<?php echo $employee[$i]['sub'];?>'>
                             </td>
+                            <td>
+                                <select class="form-control" name="payment_method[]" style="min-width:120px;" required>
+                                    <option value="Electrónico" <?php echo ($current_method === 'Electrónico') ? 'selected' : ''; ?>>Electrónico</option>
+                                    <option value="Cheque" <?php echo ($current_method === 'Cheque') ? 'selected' : ''; ?>>Cheque</option>
+                                    <option value="Efectivo" <?php echo ($current_method === 'Efectivo') ? 'selected' : ''; ?>>Efectivo</option>
+                                </select>
+                            </td>
                             <td><textarea rows="1" class="form-control"
                                     name='note[]'><?php echo $employee[$i]['note'];?></textarea></td>
 
@@ -208,6 +222,8 @@
 
                         <input type="hidden" class='total-' name="sub[]" id='subh--<?php echo $_id;?>'
                             value='<?php echo $employee[$i]['sub'];?>'>
+
+                        <input type="hidden" name="payment_method[]" value="<?php echo htmlspecialchars($current_method, ENT_QUOTES, 'UTF-8'); ?>">
 
                         <textarea rows="1" class="form-control" hidden
                             name='note[]'><?php echo $employee[$i]['note'];?></textarea>
