@@ -103,13 +103,14 @@
 
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <label>CUI:</label>
+                                    <label>CUI</label>
                                     <div class="input-group">
-                                        <input type="number" class="form-control" pattern="[0-9]{8}"
-                                            aria-label="Text input with checkbox" maxlength="13" name='cui'
-                                            oninput="if(value.length>13)value=value.slice(0,13)" onkeyup="validateDPI(this.value);" />
+                                        <input type="text" class="form-control" name="cui" id="cui_empleado_add"
+                                            maxlength="13" inputmode="numeric"
+                                            oninput="this.value=this.value.replace(/[^0-9]/g, '').slice(0,13); validateDPI(this.value);"
+                                            placeholder="0000000000000" />
                                     </div>
-                                    <div id='errorCUI'></div>
+                                    <div id="errorCUI"></div>
                                 </div>
                             </div>
                             <div class="col-sm-4">
@@ -312,17 +313,14 @@ function cuiIsValid(cui) {
 };
 
 function validateDPI(ddd) {
-            var $this = $(this);
-            var $parent = $this.parent();
-            var $next = $this.next();
             var cui = ddd;
             
             if (cui && cuiIsValid(cui)) {
-                $('#errorCUI').html('<p class="text-success"> DPI válido</p>');
+                $('#errorCUI').html('<p class="text-success mb-0">CUI válido</p>');
             } else if (cui) {
-                $('#errorCUI').html('<p class="text-danger">Debe ingresar un DPI válido</p>');
+                $('#errorCUI').html('<p class="text-danger mb-0">Debe ingresar un CUI válido</p>');
             } else {
-                $('#errorCUI').html('<p class="text-danger">DPI no válido</p>');
+                $('#errorCUI').html('');
             }
 }
             

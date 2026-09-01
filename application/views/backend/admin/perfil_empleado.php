@@ -109,6 +109,19 @@
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="form-group">
+                                            <label>CUI</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" name="cui" id="cui_empleado"
+                                                    maxlength="13" inputmode="numeric"
+                                                    oninput="this.value=this.value.replace(/[^0-9]/g, '').slice(0,13); validateDPIPerfil(this.value);"
+                                                    value="<?php echo htmlspecialchars($row['cui'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                                                    placeholder="0000000000000" />
+                                            </div>
+                                            <div id="errorCUIPerfil"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
                                             <label>Número de cuenta</label>
                                             <div class="input-group">
                                                 <input type="text" class="form-control" name="account_number"
@@ -532,6 +545,44 @@ function SHA1(msg) {
 }
 
 let timerInterval
+
+function cuiIsValidPerfil(cui) {
+    if (!cui) {
+        return true;
+    }
+
+    var cuiRegExp = /^[0-9]{4}\s?[0-9]{5}\s?[0-9]{4}$/;
+    if (!cuiRegExp.test(cui)) {
+        return false;
+    }
+
+    cui = cui.replace(/\s/g, '');
+    var depto = parseInt(cui.substring(9, 11), 10);
+    var muni = parseInt(cui.substring(11, 13), 10);
+    var numero = cui.substring(0, 8);
+    var verificador = parseInt(cui.substring(8, 9), 10);
+    var munisPorDepto = [17, 8, 16, 16, 13, 14, 19, 8, 24, 21, 9, 30, 32, 21, 8, 17, 14, 5, 11, 11, 7, 17];
+
+    if (depto === 0 || muni === 0 || depto > munisPorDepto.length || muni > munisPorDepto[depto - 1]) {
+        return false;
+    }
+
+    var total = 0;
+    for (var i = 0; i < numero.length; i++) {
+        total += numero[i] * (i + 2);
+    }
+    return (total % 11) === verificador;
+}
+
+function validateDPIPerfil(cui) {
+    if (cui && cuiIsValidPerfil(cui)) {
+        $('#errorCUIPerfil').html('<p class="text-success mb-0">CUI válido</p>');
+    } else if (cui) {
+        $('#errorCUIPerfil').html('<p class="text-danger mb-0">Debe ingresar un CUI válido</p>');
+    } else {
+        $('#errorCUIPerfil').html('');
+    }
+}
 
 function executeExample(_id) {
     Swal.fire({
