@@ -34,7 +34,7 @@ foreach ($vac_rows as $vac) {
                     <div class="card-title">
                         <h3 class="card-label">Registrar vacación
                             <span class="d-block text-muted pt-2 font-size-sm">
-                                Acumulados: (días trabajados × 15) / 365. Se restan los días ya gozados o pagados. Monto: días × (salario / 30).
+                                Acumulados: (días trabajados × 15) / 365. Se restan gozadas, pagadas y permisos. En <b>Permiso</b> se descuenta 1 día a cuenta de vacaciones.
                             </span>
                         </h3>
                     </div>
@@ -83,39 +83,43 @@ foreach ($vac_rows as $vac) {
                             <div class="col-sm-6">
                                 <div class="form-group">
                                     <label>Forma <span class="text-danger">*</span></label>
-                                    <select class="form-control" name="type" id="vacation_type" required onchange="recalcularVacacion()">
+                                    <select class="form-control" name="type" id="vacation_type" required onchange="onVacationTypeChange()">
                                         <option value="">Seleccionar</option>
                                         <option value="Gozada">Gozada</option>
                                         <option value="Pagada">Pagada</option>
+                                        <option value="Permiso">Permiso (1 día a cuenta)</option>
                                     </select>
+                                    <small class="text-muted" id="permiso_hint" style="display:none;">
+                                        Registra un permiso especial y descuenta 1 día del saldo de vacaciones.
+                                    </small>
                                 </div>
                             </div>
 
                             <div class="col-sm-3">
                                 <div class="form-group">
-                                    <label>Fecha de inicio <span class="text-danger">*</span></label>
+                                    <label id="date_start_label">Fecha de inicio <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control" name="date_start" id="date_start" required
-                                        onchange="recalcularVacacion()">
-                                </div>
-                            </div>
-
-                            <div class="col-sm-3">
-                                <div class="form-group">
-                                    <label>Fecha final <span class="text-danger">*</span></label>
-                                    <input type="date" class="form-control" name="date_end" id="date_end" required
                                         onchange="recalcularVacacion()">
                                     <span class="text-danger" id="date_error"></span>
                                 </div>
                             </div>
 
-                            <div class="col-sm-2">
+                            <div class="col-sm-3" id="date_end_group">
+                                <div class="form-group">
+                                    <label id="date_end_label">Fecha final <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" name="date_end" id="date_end" required
+                                        onchange="recalcularVacacion()">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-2 calc-regular">
                                 <div class="form-group">
                                     <label>Días trabajados</label>
                                     <input type="number" class="form-control" id="worked_days" value="0" readonly>
                                 </div>
                             </div>
 
-                            <div class="col-sm-2">
+                            <div class="col-sm-2 calc-regular">
                                 <div class="form-group">
                                     <label>Días acumulados</label>
                                     <input type="number" step="0.001" class="form-control" id="accrued_days" value="0" readonly>
@@ -125,16 +129,16 @@ foreach ($vac_rows as $vac) {
 
                             <div class="col-sm-2">
                                 <div class="form-group">
-                                    <label>Ya gozados/pagados</label>
+                                    <label>Ya descontados</label>
                                     <input type="number" step="0.001" class="form-control" id="used_days" value="0" readonly>
                                 </div>
                             </div>
 
                             <div class="col-sm-3">
                                 <div class="form-group">
-                                    <label>Días disponibles</label>
+                                    <label id="days_label">Días disponibles</label>
                                     <input type="number" step="0.001" class="form-control" name="days" id="days" value="0" readonly>
-                                    <small class="text-muted">Acumulados − historial</small>
+                                    <small class="text-muted" id="days_hint">Acumulados − historial</small>
                                 </div>
                             </div>
 
@@ -270,26 +274,78 @@ function renderVacationHistory(employeeId) {
 
 function onEmployeeChange() {
     var emp = getSelectedEmployee();
+    var isPermiso = $('#vacation_type').val() === 'Permiso';
+    var today = formatDateUTC(new Date(Date.UTC(
+        (new Date()).getFullYear(), (new Date()).getMonth(), (new Date()).getDate()
+    )));
+
     if (emp.hiring) {
-        $('#date_start').val(emp.hiring);
         $('#hiring_hint').html('Fecha de contratación: ' + emp.hiring);
-        if (!$('#date_end').val()) {
-            var today = new Date();
-            $('#date_end').val(formatDateUTC(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))));
+        if (isPermiso) {
+            $('#date_start').val(today);
+            $('#date_end').val(today);
+        } else {
+            $('#date_start').val(emp.hiring);
+            if (!$('#date_end').val()) {
+                $('#date_end').val(today);
+            }
         }
     } else {
         $('#hiring_hint').html('Sin fecha de contratación registrada.');
+        if (isPermiso) {
+            $('#date_start').val(today);
+            $('#date_end').val(today);
+        }
     }
     renderVacationHistory(emp.id);
     recalcularVacacion();
 }
 
+function onVacationTypeChange() {
+    var isPermiso = $('#vacation_type').val() === 'Permiso';
+    if (isPermiso) {
+        $('#permiso_hint').show();
+        $('.calc-regular').hide();
+        $('#date_start_label').html('Fecha del permiso <span class="text-danger">*</span>');
+        $('#date_end_group').hide();
+        $('#days_label').html('Días a descontar');
+        $('#days_hint').html('Siempre 1 día a cuenta de vacaciones');
+        var startVal = $('#date_start').val();
+        if (!startVal) {
+            var today = new Date();
+            startVal = formatDateUTC(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())));
+            $('#date_start').val(startVal);
+        }
+        $('#date_end').val(startVal);
+    } else {
+        $('#permiso_hint').hide();
+        $('.calc-regular').show();
+        $('#date_start_label').html('Fecha de inicio <span class="text-danger">*</span>');
+        $('#date_end_group').show();
+        $('#days_label').html('Días disponibles');
+        $('#days_hint').html('Acumulados − historial');
+        var emp = getSelectedEmployee();
+        if (emp.hiring && (!$('#date_start').val() || $('#vacation_type').data('was-permiso'))) {
+            $('#date_start').val(emp.hiring);
+        }
+    }
+    $('#vacation_type').data('was-permiso', isPermiso);
+    recalcularVacacion();
+}
+
 function recalcularVacacion() {
     var emp = getSelectedEmployee();
-    var start = parseDate($('#date_start').val());
-    var end = parseDate($('#date_end').val());
+    var type = $('#vacation_type').val();
+    var isPagada = type === 'Pagada';
+    var isPermiso = type === 'Permiso';
     var hiring = parseDate(emp.hiring);
-    var isPagada = $('#vacation_type').val() === 'Pagada';
+    var start = parseDate($('#date_start').val());
+
+    if (isPermiso && start) {
+        $('#date_end').val(formatDateUTC(start));
+    }
+
+    var end = parseDate($('#date_end').val());
 
     if (isPagada) {
         $('#amount_group').show();
@@ -302,7 +358,7 @@ function recalcularVacacion() {
         $('#worked_days').val(0);
         $('#accrued_days').val(0);
         $('#used_days').val(emp.used.toFixed(3));
-        $('#days').val(0);
+        $('#days').val(isPermiso ? '1.000' : '0');
         $('#amount').val('0.00');
         return;
     }
@@ -310,12 +366,16 @@ function recalcularVacacion() {
     if (hiring && start < hiring) {
         start = hiring;
         $('#date_start').val(formatDateUTC(hiring));
-        $('#date_error').html('La fecha de inicio se ajustó a la contratación del empleado.');
+        if (isPermiso) {
+            end = hiring;
+            $('#date_end').val(formatDateUTC(hiring));
+        }
+        $('#date_error').html('La fecha se ajustó a la contratación del empleado.');
     } else {
         $('#date_error').html('');
     }
 
-    if (end < start) {
+    if (!isPermiso && end < start) {
         $('#date_error').html('La fecha final debe ser igual o posterior a la fecha de inicio.');
         $('#worked_days').val(0);
         $('#accrued_days').val(0);
@@ -337,11 +397,20 @@ function recalcularVacacion() {
         $('#submit_vacation').attr('disabled', 'disabled');
     }
 
-    // Sin +1: un año aniversario = 365 días (366 si el período incluye 29/feb).
-    var workedDays = Math.floor((end.getTime() - start.getTime()) / 86400000);
-    var accruedDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
     var usedDays = emp.used;
-    var vacationDays = Math.round((Math.max(0, accruedDays - usedDays) + Number.EPSILON) * 1000) / 1000;
+    var workedDays;
+    var accruedDays;
+    if (isPermiso) {
+        var permStart = hiring || start;
+        workedDays = Math.floor((start.getTime() - permStart.getTime()) / 86400000);
+        accruedDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
+    } else {
+        workedDays = Math.floor((end.getTime() - start.getTime()) / 86400000);
+        accruedDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
+    }
+
+    var available = Math.round((Math.max(0, accruedDays - usedDays) + Number.EPSILON) * 1000) / 1000;
+    var vacationDays = isPermiso ? 1 : available;
     var amount = 0;
     if (isPagada) {
         amount = Math.round(((vacationDays * (emp.salary / 30)) + Number.EPSILON) * 100) / 100;
@@ -352,8 +421,16 @@ function recalcularVacacion() {
     $('#used_days').val(usedDays.toFixed(3));
     $('#days').val(vacationDays.toFixed(3));
     $('#amount').val(amount.toFixed(2));
-    if (!periodExists) {
+
+    var canSave = !periodExists;
+    if (isPermiso && available < 1) {
+        $('#date_error').html('No hay al menos 1 día disponible a cuenta de vacaciones.');
+        canSave = false;
+    }
+    if (canSave) {
         $('#submit_vacation').removeAttr('disabled');
+    } else {
+        $('#submit_vacation').attr('disabled', 'disabled');
     }
 }
 
@@ -363,6 +440,6 @@ $(document).ready(function() {
         placeholder: 'Seleccionar',
         allowClear: true
     });
-    recalcularVacacion();
+    onVacationTypeChange();
 });
 </script>

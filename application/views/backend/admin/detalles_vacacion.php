@@ -39,7 +39,15 @@ $vacation = $this->db->get_where('vacations', array('vacation_id' => $vacation_i
                             <div class="form-group">
                                 <label><strong>Forma:</strong></label>
                                 <p>
-                                    <span class="label label-lg font-weight-bold label-light-<?php echo ($vacation->type === 'Pagada') ? 'warning' : 'success'; ?> label-inline">
+                                    <?php
+                                    $type_class = 'success';
+                                    if ($vacation->type === 'Pagada') {
+                                        $type_class = 'warning';
+                                    } elseif ($vacation->type === 'Permiso') {
+                                        $type_class = 'info';
+                                    }
+                                    ?>
+                                    <span class="label label-lg font-weight-bold label-light-<?php echo $type_class; ?> label-inline">
                                         <?php echo $vacation->type; ?>
                                     </span>
                                 </p>

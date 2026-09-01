@@ -56,7 +56,7 @@ $can_status = ($user_type == 1 || !empty($permisos['estado_vacaciones']));
                             </div>
                             <div class="col-lg-3 mb-lg-0 mb-6">
                                 <label>Forma:</label>
-                                <input type="text" class="form-control datatable-input" placeholder="Gozada / Pagada"
+                                <input type="text" class="form-control datatable-input" placeholder="Gozada / Pagada / Permiso"
                                     data-col-index="5">
                             </div>
                         </div>
@@ -110,7 +110,15 @@ $can_status = ($user_type == 1 || !empty($permisos['estado_vacaciones']));
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="label label-lg font-weight-bold label-light-<?php echo ($row['type'] === 'Pagada') ? 'warning' : 'success'; ?> label-inline">
+                                        <?php
+                                        $type_class = 'success';
+                                        if ($row['type'] === 'Pagada') {
+                                            $type_class = 'warning';
+                                        } elseif ($row['type'] === 'Permiso') {
+                                            $type_class = 'info';
+                                        }
+                                        ?>
+                                        <span class="label label-lg font-weight-bold label-light-<?php echo $type_class; ?> label-inline">
                                             <?php echo $row['type']; ?>
                                         </span>
                                     </td>

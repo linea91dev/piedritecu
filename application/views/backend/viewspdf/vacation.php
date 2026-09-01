@@ -48,7 +48,13 @@ if (!$vacation) {
     $days = (float) $vacation['days'];
     $amount = (float) $vacation['amount'];
     $note = isset($vacation['note']) ? $vacation['note'] : '';
-    $title = ($type === 'Pagada') ? 'Comprobante de vacaciones pagadas' : 'Comprobante de vacaciones gozadas';
+    if ($type === 'Pagada') {
+        $title = 'Comprobante de vacaciones pagadas';
+    } elseif ($type === 'Permiso') {
+        $title = 'Comprobante de permiso (a cuenta de vacaciones)';
+    } else {
+        $title = 'Comprobante de vacaciones gozadas';
+    }
 ?>
 <div style="font-family:Arial,Helvetica,sans-serif;color:#333;font-size:12px;padding:10px;">
     <div style="text-align:center;margin-bottom:12px;">
@@ -109,6 +115,13 @@ if (!$vacation) {
             <td style="border:1px solid #000;padding:8px;font-weight:bold;background:#f7f7f7;">Monto a pagar</td>
             <td style="border:1px solid #000;padding:8px;text-align:right;font-weight:bold;background:#f7f7f7;color:#c00;">
                 <?php echo $moneda.number_format($amount, 2, '.', ','); ?>
+            </td>
+        </tr>
+        <?php elseif ($type === 'Permiso'): ?>
+        <tr>
+            <td style="border:1px solid #000;padding:8px;font-weight:bold;background:#f7f7f7;">Estado</td>
+            <td style="border:1px solid #000;padding:8px;text-align:right;font-weight:bold;background:#f7f7f7;">
+                1 día descontado a cuenta de vacaciones
             </td>
         </tr>
         <?php else: ?>

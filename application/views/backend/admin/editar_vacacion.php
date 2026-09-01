@@ -81,9 +81,10 @@ foreach ($vac_rows as $vac) {
         <div class="col-sm-6">
             <div class="form-group">
                 <label>Forma <span class="text-danger">*</span></label>
-                <select class="form-control" name="type" id="edit_vacation_type" required onchange="recalcularEditVacacion()">
+                <select class="form-control" name="type" id="edit_vacation_type" required onchange="onEditVacationTypeChange()">
                     <option value="Gozada" <?php echo ($row['type'] === 'Gozada') ? 'selected' : ''; ?>>Gozada</option>
                     <option value="Pagada" <?php echo ($row['type'] === 'Pagada') ? 'selected' : ''; ?>>Pagada</option>
+                    <option value="Permiso" <?php echo ($row['type'] === 'Permiso') ? 'selected' : ''; ?>>Permiso (1 día a cuenta)</option>
                 </select>
             </div>
         </div>
@@ -93,15 +94,15 @@ foreach ($vac_rows as $vac) {
                 <label>Fecha de inicio <span class="text-danger">*</span></label>
                 <input type="date" class="form-control" name="date_start" id="edit_date_start" required
                     value="<?php echo $row['date_start']; ?>" onchange="recalcularEditVacacion()">
+                <span class="text-danger" id="edit_date_error"></span>
             </div>
         </div>
 
-        <div class="col-sm-3">
+        <div class="col-sm-3" id="edit_date_end_group">
             <div class="form-group">
                 <label>Fecha final <span class="text-danger">*</span></label>
                 <input type="date" class="form-control" name="date_end" id="edit_date_end" required
                     value="<?php echo $row['date_end']; ?>" onchange="recalcularEditVacacion()">
-                <span class="text-danger" id="edit_date_error"></span>
             </div>
         </div>
 
@@ -257,6 +258,20 @@ function renderEditVacationHistory(employeeId) {
     $('#edit_vacation_history_wrap').show();
 }
 
+function onEditVacationTypeChange() {
+    var isPermiso = $('#edit_vacation_type').val() === 'Permiso';
+    if (isPermiso) {
+        $('#edit_date_end_group').hide();
+        var startVal = $('#edit_date_start').val();
+        if (startVal) {
+            $('#edit_date_end').val(startVal);
+        }
+    } else {
+        $('#edit_date_end_group').show();
+    }
+    recalcularEditVacacion();
+}
+
 function onEditEmployeeChange() {
     var emp = getEditEmployee();
     if (emp.hiring) {
@@ -273,10 +288,16 @@ function onEditEmployeeChange() {
 
 function recalcularEditVacacion() {
     var emp = getEditEmployee();
-    var start = parseEditDate($('#edit_date_start').val());
-    var end = parseEditDate($('#edit_date_end').val());
+    var type = $('#edit_vacation_type').val();
+    var isPagada = type === 'Pagada';
+    var isPermiso = type === 'Permiso';
     var hiring = parseEditDate(emp.hiring);
-    var isPagada = $('#edit_vacation_type').val() === 'Pagada';
+    var start = parseEditDate($('#edit_date_start').val());
+
+    if (isPermiso && start) {
+        $('#edit_date_end').val(formatEditDateUTC(start));
+    }
+    var end = parseEditDate($('#edit_date_end').val());
 
     if (isPagada) {
         $('#edit_amount_group').show();
@@ -289,7 +310,7 @@ function recalcularEditVacacion() {
         $('#edit_worked_days').val(0);
         $('#edit_accrued_days').val(0);
         $('#edit_used_days').val(emp.used.toFixed(3));
-        $('#edit_days').val(0);
+        $('#edit_days').val(isPermiso ? '1.000' : '0');
         $('#edit_amount').val('0.00');
         return;
     }
@@ -297,12 +318,16 @@ function recalcularEditVacacion() {
     if (hiring && start < hiring) {
         start = hiring;
         $('#edit_date_start').val(formatEditDateUTC(hiring));
-        $('#edit_date_error').html('La fecha de inicio se ajustó a la contratación del empleado.');
+        if (isPermiso) {
+            end = hiring;
+            $('#edit_date_end').val(formatEditDateUTC(hiring));
+        }
+        $('#edit_date_error').html('La fecha se ajustó a la contratación del empleado.');
     } else {
         $('#edit_date_error').html('');
     }
 
-    if (end < start) {
+    if (!isPermiso && end < start) {
         $('#edit_date_error').html('La fecha final debe ser igual o posterior a la fecha de inicio.');
         $('#edit_worked_days').val(0);
         $('#edit_accrued_days').val(0);
@@ -324,10 +349,20 @@ function recalcularEditVacacion() {
         $('#edit_submit_vacation').attr('disabled', 'disabled');
     }
 
-    var workedDays = Math.floor((end.getTime() - start.getTime()) / 86400000);
-    var accruedDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
     var usedDays = emp.used;
-    var vacationDays = Math.round((Math.max(0, accruedDays - usedDays) + Number.EPSILON) * 1000) / 1000;
+    var workedDays;
+    var accruedDays;
+    if (isPermiso) {
+        var permStart = hiring || start;
+        workedDays = Math.floor((start.getTime() - permStart.getTime()) / 86400000);
+        accruedDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
+    } else {
+        workedDays = Math.floor((end.getTime() - start.getTime()) / 86400000);
+        accruedDays = Math.round(((workedDays * 15) / 365 + Number.EPSILON) * 1000) / 1000;
+    }
+
+    var available = Math.round((Math.max(0, accruedDays - usedDays) + Number.EPSILON) * 1000) / 1000;
+    var vacationDays = isPermiso ? 1 : available;
     var amount = 0;
     if (isPagada) {
         amount = Math.round(((vacationDays * (emp.salary / 30)) + Number.EPSILON) * 100) / 100;
@@ -338,13 +373,21 @@ function recalcularEditVacacion() {
     $('#edit_used_days').val(usedDays.toFixed(3));
     $('#edit_days').val(vacationDays.toFixed(3));
     $('#edit_amount').val(amount.toFixed(2));
-    if (!periodExists) {
+
+    var canSave = !periodExists;
+    if (isPermiso && available < 1) {
+        $('#edit_date_error').html('No hay al menos 1 día disponible a cuenta de vacaciones.');
+        canSave = false;
+    }
+    if (canSave) {
         $('#edit_submit_vacation').removeAttr('disabled');
+    } else {
+        $('#edit_submit_vacation').attr('disabled', 'disabled');
     }
 }
 
 $(document).ready(function() {
     renderEditVacationHistory($('#edit_employee_id').val());
-    recalcularEditVacacion();
+    onEditVacationTypeChange();
 });
 </script>

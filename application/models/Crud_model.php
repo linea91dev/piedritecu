@@ -5600,7 +5600,7 @@ function new_change()
         $date_end    = date('Y-m-d', strtotime($this->input->post('date_end')));
         $type        = $this->input->post('type');
 
-        if (!in_array($type, array('Gozada', 'Pagada'), true)) {
+        if (!in_array($type, array('Gozada', 'Pagada', 'Permiso'), true)) {
             $type = 'Gozada';
         }
 
@@ -5608,8 +5608,16 @@ function new_change()
         $hiring   = ($employee && !empty($employee->hiring)) ? date('Y-m-d', strtotime($employee->hiring)) : null;
         $salary   = $employee ? max(0, (float) $employee->salary) : 0;
 
+        // Permiso especial: 1 día a cuenta de vacaciones (fecha única).
+        if ($type === 'Permiso') {
+            $date_end = $date_start;
+        }
+
         if ($hiring && $date_start < $hiring) {
             $date_start = $hiring;
+            if ($type === 'Permiso') {
+                $date_end = $date_start;
+            }
         }
 
         if ($this->vacation_period_exists($employee_id, $date_start, $date_end)) {
@@ -5619,10 +5627,27 @@ function new_change()
             );
         }
 
-        $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring, $employee_id);
-        $amount = ($type === 'Pagada')
-            ? $this->calculate_vacation_amount($salary, $vacation_days)
-            : 0;
+        if ($type === 'Permiso') {
+            $available = $this->calculate_vacation_days(
+                $hiring ? $hiring : $date_start,
+                $date_start,
+                $hiring,
+                $employee_id
+            );
+            if ($available < 1) {
+                return array(
+                    'ok' => false,
+                    'message' => 'No hay al menos 1 día disponible a cuenta de vacaciones para este permiso.',
+                );
+            }
+            $vacation_days = 1;
+            $amount = 0;
+        } else {
+            $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring, $employee_id);
+            $amount = ($type === 'Pagada')
+                ? $this->calculate_vacation_amount($salary, $vacation_days)
+                : 0;
+        }
 
         $data['employee_id'] = $employee_id;
         $data['date_start']  = $date_start;
@@ -5642,7 +5667,7 @@ function new_change()
         $this->insert_binnacle($message);
         $this->insert_notification($message, base64_encode('admin/vacaciones/'), 'vacaciones', 'Vacaciones');
 
-        return array('ok' => true, 'message' => 'Vacación registrada correctamente.');
+        return array('ok' => true, 'message' => ($type === 'Permiso' ? 'Permiso registrado correctamente (1 día a cuenta de vacaciones).' : 'Vacación registrada correctamente.'));
     }
 
     function update_vacation($ID)
@@ -5652,7 +5677,7 @@ function new_change()
         $date_end    = date('Y-m-d', strtotime($this->input->post('date_end')));
         $type        = $this->input->post('type');
 
-        if (!in_array($type, array('Gozada', 'Pagada'), true)) {
+        if (!in_array($type, array('Gozada', 'Pagada', 'Permiso'), true)) {
             $type = 'Gozada';
         }
 
@@ -5660,8 +5685,15 @@ function new_change()
         $hiring   = ($employee && !empty($employee->hiring)) ? date('Y-m-d', strtotime($employee->hiring)) : null;
         $salary   = $employee ? max(0, (float) $employee->salary) : 0;
 
+        if ($type === 'Permiso') {
+            $date_end = $date_start;
+        }
+
         if ($hiring && $date_start < $hiring) {
             $date_start = $hiring;
+            if ($type === 'Permiso') {
+                $date_end = $date_start;
+            }
         }
 
         if ($this->vacation_period_exists($employee_id, $date_start, $date_end, $ID)) {
@@ -5671,10 +5703,28 @@ function new_change()
             );
         }
 
-        $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring, $employee_id, $ID);
-        $amount = ($type === 'Pagada')
-            ? $this->calculate_vacation_amount($salary, $vacation_days)
-            : 0;
+        if ($type === 'Permiso') {
+            $available = $this->calculate_vacation_days(
+                $hiring ? $hiring : $date_start,
+                $date_start,
+                $hiring,
+                $employee_id,
+                $ID
+            );
+            if ($available < 1) {
+                return array(
+                    'ok' => false,
+                    'message' => 'No hay al menos 1 día disponible a cuenta de vacaciones para este permiso.',
+                );
+            }
+            $vacation_days = 1;
+            $amount = 0;
+        } else {
+            $vacation_days = $this->calculate_vacation_days($date_start, $date_end, $hiring, $employee_id, $ID);
+            $amount = ($type === 'Pagada')
+                ? $this->calculate_vacation_amount($salary, $vacation_days)
+                : 0;
+        }
 
         $data['employee_id'] = $employee_id;
         $data['date_start']  = $date_start;
