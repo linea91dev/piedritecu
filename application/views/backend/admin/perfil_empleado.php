@@ -122,6 +122,18 @@
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="form-group">
+                                            <label>NIT</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" name="nit"
+                                                    maxlength="20"
+                                                    oninput="this.value=this.value.replace(/[^0-9A-Za-z\-]/g, '').slice(0,20)"
+                                                    value="<?php echo htmlspecialchars($row['nit'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                                                    placeholder="0000000-0" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
                                             <label>Número de cuenta</label>
                                             <div class="input-group">
                                                 <input type="text" class="form-control" name="account_number"

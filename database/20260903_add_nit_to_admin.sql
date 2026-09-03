@@ -1,0 +1,2 @@
+ALTER TABLE `admin`
+    ADD COLUMN `nit` VARCHAR(20) NULL AFTER `cui`;

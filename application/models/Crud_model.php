@@ -1514,7 +1514,9 @@ class Crud_model extends CI_Model {
         $data['herramientas']  = 1;
         $data['contabilidad']  = 1;
         $data['sucursales']    = 1; 
-        $data['cui']           = $this->input->post('cui');    
+        $data['cui']           = $this->input->post('cui');
+        $data['nit']           = str_replace('-', '', trim((string) $this->input->post('nit')));
+        $data['account_number'] = trim((string) $this->input->post('account_number'));
         $data['birthday']      = date("Y-m-d", strtotime($this->input->post('birthday')));    
         $data['salary']        = $this->input->post('salary');    
         $data['address']       = trim($this->input->post('address'));
@@ -1570,6 +1572,8 @@ class Crud_model extends CI_Model {
         $data['email']         = $this->input->post('email');    
         $data['phone']         = $this->input->post('phone');
         $data['type']          = $this->input->post('type');    
+        $data['nit']           = str_replace('-', '', trim((string) $this->input->post('nit')));
+        $data['account_number'] = trim((string) $this->input->post('account_number'));
         $data['salary']        = $this->input->post('salary');    
         $data['address']       = trim($this->input->post('address'));
         $data['gm_id']         = $this->input->post('gm_id');    
@@ -1617,6 +1621,8 @@ class Crud_model extends CI_Model {
         $data['contabilidad']  = $this->input->post('contabilidad');
         $data['sucursales']    = $this->input->post('sucursales');
         $data['cui']           = $this->input->post('cui');
+        $data['nit']           = str_replace('-', '', trim((string) $this->input->post('nit')));
+        $data['account_number'] = trim((string) $this->input->post('account_number'));
         $data['birthday']      = date("Y-m-d", strtotime($this->input->post('birthday')));    
         $data['salary']        = $this->input->post('salary');    
         $data['address']       = trim($this->input->post('address'));
@@ -1654,7 +1660,8 @@ class Crud_model extends CI_Model {
         $data['emergency_phone'] = $this->input->post('emergency_phone');
         $data['account_number'] = trim((string) $this->input->post('account_number'));
         $data['bank_reference'] = trim((string) $this->input->post('bank_reference'));
-        $data['cui']           = $this->input->post('cui');    
+        $data['cui']           = $this->input->post('cui');
+        $data['nit']           = str_replace('-', '', trim((string) $this->input->post('nit')));
         $data['birthday']      = $this->parse_date_input($this->input->post('birthday'));    
         $data['salary']        = $this->input->post('salary');  
         $data['bonus']         = $this->input->post('bonus');
@@ -1734,7 +1741,9 @@ class Crud_model extends CI_Model {
         $data['phone']         = $this->input->post('phone'); 
         $data['emergency_phone'] = $this->input->post('emergency_phone');
         $data['sucursal']      = serialize($this->input->post('branch'));
-        $data['cui']           = $this->input->post('cui');    
+        $data['cui']           = $this->input->post('cui');
+        $data['nit']           = str_replace('-', '', trim((string) $this->input->post('nit')));
+        $data['account_number'] = trim((string) $this->input->post('account_number'));
         $data['birthday']      = $this->parse_date_input($this->input->post('birthday'));    
         $data['salary']        = $salary;
         $data['bonus']         = $bonus;
@@ -1784,7 +1793,9 @@ class Crud_model extends CI_Model {
         $data['last_name']     = $this->input->post('last_name');
         $data['email']         = $this->input->post('email');    
         $data['phone']         = $this->input->post('phone'); 
-        $data['cui']           = $this->input->post('cui');    
+        $data['cui']           = $this->input->post('cui');
+        $data['nit']           = str_replace('-', '', trim((string) $this->input->post('nit')));
+        $data['account_number'] = trim((string) $this->input->post('account_number'));
         $data['birthday']      = $this->parse_date_input($this->input->post('birthday'));    
         $data['salary']        = $this->input->post('salary'); 
         $data['bonus']         = $this->input->post('bonus');   

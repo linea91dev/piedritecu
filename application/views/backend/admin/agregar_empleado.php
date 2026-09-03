@@ -113,6 +113,28 @@
                                     <div id="errorCUI"></div>
                                 </div>
                             </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label>NIT</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="nit"
+                                            maxlength="20"
+                                            oninput="this.value=this.value.replace(/[^0-9A-Za-z\-]/g, '').slice(0,20)"
+                                            placeholder="0000000-0" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label>Número de cuenta</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="account_number"
+                                            maxlength="50"
+                                            oninput="this.value=this.value.replace(/[^0-9A-Za-z\-]/g, '').slice(0,50)"
+                                            placeholder="0000000000" />
+                                    </div>
+                                </div>
+                            </div>
                             <div class="col-sm-4">
                                 <div class="form-group">
                                     <label>Correo <span class="text-danger">*</span></label>
