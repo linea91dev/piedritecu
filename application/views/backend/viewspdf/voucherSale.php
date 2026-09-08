@@ -198,23 +198,13 @@
                 <div style="width: 100%; float: left;">
                     <div style="width: 100%; display: table; clear: both; margin-top: 0.5rem;">
                         <div style="width: 50%; float: left; text-align: right; font-size: 12px; font-weight: bold;">
-                            Subtotal:<br><?php if ((float)$data->shipping_cost > 0 || (int)$data->shipping > 0) echo "Envío:<br>"; if($data->credito == 1) echo "Crédito"; else echo $data->metodo; echo ":<br>"; if($data->metodo == 'Efectivo') echo "Vuelto:<br>";?>Total:
+                            Subtotal:<br><?php if($data->credito == 1) echo "Crédito"; else echo $data->metodo; echo ":<br>"; if($data->metodo == 'Efectivo') echo "Vuelto:<br>";?>Total:
                         </div>
                         <div style="width: 50%; float: left; text-align: right; font-size: 12px; font-weight: bold;">
-                            <?php
-                                $shipping_cost = (float)$data->shipping_cost;
-                                $gran_total = (float)$data->total;
-                                echo $moneda.number_format($total,2,'.',',')."<br>";
-                                if ($shipping_cost > 0 || (int)$data->shipping > 0) {
-                                    echo $moneda.number_format($shipping_cost,2,'.',',')."<br>";
-                                }
-                                if($data->metodo == 'Efectivo') {
-                                    echo $moneda.number_format($gran_total+$data->cambio,2,'.',',')."<br>".$moneda.number_format($data->cambio,2,'.',',')."<br>";
-                                } else {
-                                    echo $moneda.number_format($gran_total,2,'.',',')."<br>";
-                                }
-                                echo $moneda.number_format($gran_total,2,'.',',');
-                            ?>
+                            <?php echo $moneda.number_format($total,2,'.',',')."<br>"; 
+                                echo $moneda; if($data->metodo == 'Efectivo') echo number_format($total+$data->cambio,2,'.',',')."<br>".$moneda.number_format($data->cambio,2,'.',',')."<br>";
+                                else echo number_format($total,2,'.',',')."<br>";
+                                echo $moneda.number_format($total,2,'.',',');?>
                         </div>
                     </div>
                 </div>
