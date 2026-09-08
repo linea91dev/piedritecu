@@ -1,16 +1,29 @@
-<?php  $data = $this->db->order_by('status', 'DESC')->order_by('name', 'ASC')->get('client'); $moneda = $this->crud_model->get_info("moneda");?>
+<?php
+    if (!isset($filtro)) $filtro = 'activos';
+    $status_filtro = ($filtro == 'desactivados') ? 0 : 1;
+    $data = $this->db->order_by('name', 'ASC')->get_where('client', array('status' => $status_filtro));
+    $moneda = $this->crud_model->get_info("moneda");
+?>
 <div class="container-fluid">
     <div class="row">
         <div class="col-xl-12">
             <div class="card card-custom">
                 <div class="card-header flex-wrap border-0 pt-6 pb-0">
                     <div class="card-title">
-                        <h3 class="card-label">Gestionar clientes
-                            <span class="d-block text-muted pt-2 font-size-sm">Administra la información de tus
-                                clientes.</span>
+                        <h3 class="card-label"><?php echo ($filtro == 'desactivados') ? 'Clientes desactivados' : 'Gestionar clientes'; ?>
+                            <span class="d-block text-muted pt-2 font-size-sm"><?php echo ($filtro == 'desactivados') ? 'Clientes dados de baja.' : 'Administra la información de tus clientes.'; ?></span>
                         </h3>
                     </div>
                     <div class="card-toolbar">
+                        <?php if($filtro == 'desactivados'): ?>
+                        <a href="<?php echo base_url();?>admin/clientes/" class="btn btn-light-primary font-weight-bolder mr-2">
+                            Ver activos
+                        </a>
+                        <?php else: ?>
+                        <a href="<?php echo base_url();?>admin/clientes/desactivados" class="btn btn-light-warning font-weight-bolder mr-2">
+                            Ver desactivados
+                        </a>
+                        <?php endif; ?>
                         <?php if($data->num_rows() > 0 && ($user_type == 1 || $permisos['reportes_clientes'] == 1)): ?>
 
                         <div class="dropdown dropdown-inline mr-2">

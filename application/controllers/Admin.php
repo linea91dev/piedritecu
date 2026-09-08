@@ -3647,11 +3647,13 @@ class Admin extends CI_Controller
 
             $this->crud_model->active_client($param2);
             $this->session->set_flashdata('flash_message' , "Cliente activado correctamente.");
-            redirect(base_url() . 'admin/clientes/', 'refresh');
+            redirect(base_url() . 'admin/clientes/desactivados', 'refresh');
         }
         
+        $filtro = ($param1 == 'desactivados') ? 'desactivados' : 'activos';
+        $page_data['filtro']     = $filtro;
         $page_data['page_name']  = 'clientes';
-        $page_data['page_title'] = "Clientes";
+        $page_data['page_title'] = ($filtro == 'desactivados') ? "Clientes desactivados" : "Clientes";
         $this->load->view('backend/index', $page_data);
     }
 
