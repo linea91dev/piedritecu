@@ -344,6 +344,16 @@
                             </div>
                         </div>
 
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label>Días de crédito <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="dias_credito" min="0" step="1" value="0" required />
+                                </div>
+                                <small>(Establezca 0 si no aplica)</small>
+                            </div>
+                        </div>
+
                         <div class="col-sm-12">
                             <div class="form-group">
                                 <label>Dirección</label>

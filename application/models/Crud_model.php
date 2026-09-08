@@ -5192,6 +5192,8 @@ function new_change()
         $data['phone']     = $this->input->post('phone');
         $data['type']      = $this->input->post('type');
         $data['limite']    = $this->input->post('limite');
+        $dias_credito = $this->input->post('dias_credito');
+        $data['dias_credito'] = ($dias_credito === '' || $dias_credito === null) ? 0 : max(0, (int) $dias_credito);
         $data['nit']       = $this->input->post('nit');
         $data['email']     = $this->input->post('email');
         $data['address']   = trim($this->input->post('address'));
@@ -5214,6 +5216,8 @@ function new_change()
         $data['phone']     = $this->input->post('phone');
         $data['type']      = $this->input->post('type');
         $data['limite']    = $this->input->post('limite');
+        $dias_credito = $this->input->post('dias_credito');
+        $data['dias_credito'] = ($dias_credito === '' || $dias_credito === null) ? 0 : max(0, (int) $dias_credito);
         $data['nit']       = str_replace('-','', $this->input->post('nit'));
         $data['email']     = $this->input->post('email');
         $data['address']   = trim($this->input->post('address'));

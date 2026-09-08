@@ -87,6 +87,17 @@
 
         <div class="col-sm-6">
             <div class="form-group">
+                <label>Días de crédito <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <input type="number" class="form-control" name="dias_credito" min="0" step="1"
+                        value="<?php echo isset($row['dias_credito']) ? (int) $row['dias_credito'] : 0; ?>" required />
+                </div>
+                <small>(Establezca 0 si no aplica)</small>
+            </div>
+        </div>
+
+        <div class="col-sm-6">
+            <div class="form-group">
                 <label>NIT/Código </label>
                 <div class="input-group">
                     <input type="text" class="form-control" aria-label="Text input with checkbox" min='0' name='nit'
