@@ -11821,17 +11821,17 @@ function new_change()
     
     function get_increases($initial,$final) {
         $branch_id = $this->session->userdata('branch_id');
-        return $this->db->query("SELECT * FROM `increase` WHERE branch_id = '$branch_id' AND status = 1 AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final') ORDER BY datetime ASC");
+        return $this->db->query("SELECT * FROM `increase` WHERE (branch_id = '$branch_id' OR branch_id = 0) AND status = 1 AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final') ORDER BY datetime ASC");
     }
     
     function get_increases_details($initial,$final) {
         $branch_id = $this->session->userdata('branch_id');
-        return $this->db->query("SELECT i.code, i.datetime, i.branch_id, i.responsable, d.products_id, d.amount, d.cost, d.products_id_2 FROM increase AS i INNER JOIN product_details AS d ON i.code = d.activity_ref WHERE  i.status = 1 AND d.status = 1 AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final') ORDER BY i.datetime DESC");
+        return $this->db->query("SELECT i.code, i.datetime, i.branch_id, i.responsable, d.products_id, d.amount, d.cost, d.products_id_2 FROM increase AS i INNER JOIN product_details AS d ON i.code = d.activity_ref WHERE (i.branch_id = '$branch_id' OR i.branch_id = 0) AND i.status = 1 AND d.status = 1 AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final') ORDER BY i.datetime DESC");
     }
     
     function get_increases_total($initial, $final) {
         $branch_id = $this->session->userdata('branch_id');
-        return $this->db->query("SELECT SUM(total) AS total FROM increase WHERE branch_id = '$branch_id' AND status = 1 AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final')")->row()->total;
+        return $this->db->query("SELECT SUM(total) AS total FROM increase WHERE (branch_id = '$branch_id' OR branch_id = 0) AND status = 1 AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final')")->row()->total;
     }
     
     function get_losses_products($initial, $final) {

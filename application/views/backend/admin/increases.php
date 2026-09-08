@@ -103,6 +103,7 @@
                                     <th>#</th>
                                     <th>Código</th>
                                     <th>Fecha</th>
+                                    <th>Destino</th>
                                     <th>Responsable</th>
                                     <th>Productos registradas</th>
                                     <th>Total</th>
@@ -140,7 +141,7 @@
            },  
            "columnDefs":[  
                 {  
-                    "targets":[0, 3, 4, 5],  
+                    "targets":[0, 3, 4, 5, 6],  
                     "orderable":false,  
                 },  
            ],  

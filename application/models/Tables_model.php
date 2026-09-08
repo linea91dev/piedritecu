@@ -1817,6 +1817,10 @@ class Tables_model extends CI_Model
             $sub_array[] = $n++;  
             $sub_array[] = $row['code'];
             $sub_array[] = date("d/m/Y h:i a", strtotime($row['datetime']));
+            $destino = ((int) $row['branch_id'] === 0)
+                ? '<span class="label label-lg font-weight-bold label-light-warning label-inline">Bodega</span>'
+                : '<span class="label label-lg font-weight-bold label-light-info label-inline">Tienda</span>';
+            $sub_array[] = $destino;
             $sub_array[] = $this->crud_model->getName("admin", $row['responsable']);
             $sub_array[] = $row['num_products'];
             $sub_array[] = $moneda.number_format($row['total'],2,'.',',');   
@@ -1888,7 +1892,10 @@ class Tables_model extends CI_Model
         $branch_id = $this->session->userdata('branch_id');
         $this->db->select('*'); 
         $this->db->from('increase');
+        $this->db->group_start();
         $this->db->where('branch_id', $branch_id);
+        $this->db->or_where('branch_id', 0);
+        $this->db->group_end();
         $this->db->where('status', 1);
         $this->db->where("DATE(datetime) >= DATE('$param1')", NULL, FALSE);
         $this->db->where("DATE(datetime) <= DATE('$param2')", NULL, FALSE);
@@ -1916,7 +1923,10 @@ class Tables_model extends CI_Model
         $branch_id = $this->session->userdata('branch_id');
         $this->db->select('*'); 
         $this->db->from('increase');
+        $this->db->group_start();
         $this->db->where('branch_id', $branch_id);
+        $this->db->or_where('branch_id', 0);
+        $this->db->group_end();
         $this->db->where('status', 1);
         $this->db->where("DATE(datetime) >= DATE('$param1')", NULL, FALSE);
         $this->db->where("DATE(datetime) <= DATE('$param2')", NULL, FALSE);
