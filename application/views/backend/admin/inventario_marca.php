@@ -101,6 +101,7 @@ $tipo = $this->session->userdata('login_user_type');
                                     <th>Precio Publico</th>
                                     <th>Precio Socio</th>
                                     <th>Precio Mayorista</th>
+                                    <th>Precio Ferretero</th>
                                     <th>Estado</th>
                                     
                                 </tr>

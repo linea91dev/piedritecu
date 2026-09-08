@@ -15,6 +15,10 @@ if($sales->num_rows() > 0){
     display: none;
 }
 
+.client-ferretero {
+    display: none;
+}
+
 .resultado td:hover {
     background: #8950fc2b;
 }
@@ -146,10 +150,12 @@ if($sales->num_rows() > 0){
                                         <th class="client-mn">Precio</th>
                                         <th class="client-my">Precio Mayoristas</th>
                                         <th class="client-farma">Precio farmacia</th>
+                                        <th class="client-ferretero">Precio Ferretero</th>
                                         <th>Descuento (%)</th>
                                         <th class="client-mn">Subtotal</th>
                                         <th class="client-my">Subtotal Mayoristas</th>
                                         <th class="client-farma">Subtotal farmacia</th>
+                                        <th class="client-ferretero">Subtotal ferretero</th>
                                         <th>-</th>
                                     </tr>
                                 </thead>
@@ -447,20 +453,36 @@ function print_recipe() {
 
 var mayorista = false;
 var cl_farma = false;
+var cl_ferretero = false;
 
 function client_type(value) {
     if (value == 2) {
         mayorista = false;
         cl_farma  = false;
+        cl_ferretero = false;
         $('.client-my').css('display', 'none');
         $('.client-farma').css('display', 'none');
+        $('.client-ferretero').css('display', 'none');
         $('.client-mn').css('display', 'block');
         $('.discount').prop("readonly", false);
         sum();
     } else if(value == 3) {
         mayorista = false;
         cl_farma = true;
+        cl_ferretero = false;
         $('.client-farma').css('display', 'block');
+        $('.client-ferretero').css('display', 'none');
+        $('.client-my').css('display', 'none');
+        $('.client-mn').css('display', 'none');
+        $('.discount').prop("readonly", true);
+        $('.discount').val(0);
+        sum();
+    } else if(value == 4) {
+        mayorista = false;
+        cl_farma = false;
+        cl_ferretero = true;
+        $('.client-ferretero').css('display', 'block');
+        $('.client-farma').css('display', 'none');
         $('.client-my').css('display', 'none');
         $('.client-mn').css('display', 'none');
         $('.discount').prop("readonly", true);
@@ -469,8 +491,10 @@ function client_type(value) {
     } else if(value == 1) {
         mayorista = true;
         cl_farma = false;
+        cl_ferretero = false;
         $('.client-my').css('display', 'block');
         $('.client-farma').css('display', 'none');
+        $('.client-ferretero').css('display', 'none');
         $('.client-mn').css('display', 'none');
         $('.discount').prop("readonly", true);
         $('.discount').val(0);
@@ -508,6 +532,7 @@ function clients(value) {
                     if (data[0].type == 1) {
                         jQuery('#mn').removeAttr('checked');
                         jQuery('#farma').removeAttr('checked');
+                        jQuery('#ferretero').removeAttr('checked');
                         jQuery('#my').attr('checked', 'checked');
                         client_type(1);
                         $('#msClient').html(
@@ -517,14 +542,25 @@ function clients(value) {
                         $('#prueba').attr('value', '1');
                         jQuery('#mn').removeAttr('checked');
                         jQuery('#my').removeAttr('checked');
+                        jQuery('#ferretero').removeAttr('checked');
                         jQuery('#farma').attr('checked', 'checked');
                         client_type(3);
                         $('#msClient').html(
                             '<label class="text-info" > <b> Cliente farmacia </b> </label>');
+                    }
+                    else if(data[0].type == 4) {
+                        jQuery('#mn').removeAttr('checked');
+                        jQuery('#my').removeAttr('checked');
+                        jQuery('#farma').removeAttr('checked');
+                        jQuery('#ferretero').attr('checked', 'checked');
+                        client_type(4);
+                        $('#msClient').html(
+                            '<label class="text-info" > <b> Cliente ferretero </b> </label>');
                     } else {
                         jQuery('#mn').attr('checked', 'checked');
                         jQuery('#my').removeAttr('checked');
                         jQuery('#farma').removeAttr('checked');
+                        jQuery('#ferretero').removeAttr('checked');
                         client_type(2);
                         $('#msClient').html('');
                     }
@@ -787,6 +823,7 @@ function sum(i, v) {
     var precio = $('#price-' + i).val();
     var precio_my = $('#price_my-' + i).val();
     var precio_farma = $('#price_farma-' + i).val();
+    var precio_ferretero = $('#price_ferretero-' + i).val() || 0;
     var descuento = $('#discount-' + i).val();
     var prPrice = $('#prPrice-' + i).val();
 
@@ -829,7 +866,7 @@ function sum(i, v) {
         $('#codigoAuth').hide(500);
     }
 
-    if (total < precio_producto) {
+    if (total < precio_producto && !mayorista && cl_farma==false && cl_ferretero==false) {
         $('#mensaje-' + i).show(500);
         var COSTO = parseFloat(precio_producto);
         var PRECIO = parseFloat(prPrice);
@@ -838,6 +875,14 @@ function sum(i, v) {
 
         var ms =
             `<td><small class="text-danger" id="ms-descuento"> El costo del producto es  <b>${moneda}${precio_producto}</b> y el descuento es <b>${descuento}%</b> el cual te dará una ganancia negativa </small></td>`;
+        $('#mensaje-' + i).html(ms);
+    } else if (Number(precio_farma) < Number(precio_producto) && cl_farma) {
+        $('#mensaje-' + i).show(500);
+        var ms =`<td><small class="text-danger" id="ms-descuento"> El costo del producto es  <b>${moneda}${precio_producto}</b> y el precio de venta es <b>${moneda}${precio_farma}</b> el cual te dará una ganancia negativa </small></td>`;
+        $('#mensaje-' + i).html(ms);
+    } else if (Number(precio_ferretero) < Number(precio_producto) && cl_ferretero) {
+        $('#mensaje-' + i).show(500);
+        var ms =`<td><small class="text-danger" id="ms-descuento"> El costo del producto es  <b>${moneda}${precio_producto}</b> y el precio de venta es <b>${moneda}${precio_ferretero}</b> el cual te dará una ganancia negativa </small></td>`;
         $('#mensaje-' + i).html(ms);
     } else {
         $('#mensaje-' + i).html('');
@@ -862,7 +907,14 @@ function sum(i, v) {
     $('#sub_farma-' + i).html(moneda + ' ' + total_farma.toFixed(2));
     $('#subt_farma-' + i).val(total_farma.toFixed(2));
 
-    if (!mayorista && cl_farma==false) {
+    var mul_ferretero = (parseFloat(cantidad) * parseFloat(precio_ferretero));
+    var des_ferretero = mul_ferretero * (descuento / 100);
+    var total_ferretero = mul_ferretero - des_ferretero;
+
+    $('#sub_ferretero-' + i).html(moneda + ' ' + total_ferretero.toFixed(2));
+    $('#subt_ferretero-' + i).val(total_ferretero.toFixed(2));
+
+    if (!mayorista && cl_farma==false && cl_ferretero==false) {
 
         var suma = 0;
         $('.total').each(function() {
@@ -879,6 +931,16 @@ function sum(i, v) {
         var suma = 0;
         $('.total_farma').each(function() {
             suma += parseFloat($(this).val());
+        });
+
+        $('#total').html(moneda + suma.toFixed(2));
+        $('#total_a').html(moneda + suma.toFixed(2));
+        $('#bttl').val(suma.toFixed(2));
+
+    } else if(cl_ferretero) {
+        var suma = 0;
+        $('.total_ferretero').each(function() {
+            suma += parseFloat($(this).val() || 0);
         });
 
         $('#total').html(moneda + suma.toFixed(2));

@@ -203,7 +203,7 @@
                         <div class="col-sm-3">
                             <div class="form-group">
                                 <label><b>Tipo cliente:</b></label><br>
-                                <?php if($sale->my==1){echo "Mayorista";}elseif($sale->my==3){echo "Farmacia";}else{echo "Publico";};?>
+                                <?php if($sale->my==1){echo "Mayorista";}elseif($sale->my==3){echo "Socio";}elseif($sale->my==4){echo "Ferretero";}else{echo "Publico";};?>
                             </div>
                         </div>
 

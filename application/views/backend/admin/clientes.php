@@ -84,8 +84,9 @@
                                 <select class=" form-control datatable-input" data-col-index="4">
                                     <option value="">Seleccionar</option>
                                     <option value="Mayorista">Mayorista</option>
-                                    <option value="Minorista">Minorista</option>
-                                    <option value="Farmacia">Socio</option>
+                                    <option value="Publico">Publico</option>
+                                    <option value="Socio">Socio</option>
+                                    <option value="Ferretero">Ferretero</option>
                                 </select>
                             </div>
 
@@ -133,7 +134,7 @@
                                     <td><?php echo ($row['nit'] == '')? 'Sin datos': $row['nit'] ;?></td>
                                     <td><?php echo ($row['phone'] == '')? 'Sin datos': '(+502)'.$row['phone'] ;?></td>
                                     <td>
-                                        <span class="label label-lg font-weight-bold label-light-<?php if($row['type'] == 1){ echo'info ';}elseif($row['type'] == 2){echo'warning';}else{echo 'success';};?> label-inline"><?php if($row['type'] == 1){echo'Mayorista';}elseif($row['type'] == 2){echo'Publico';}else{echo'Socio';};?></span>
+                                        <span class="label label-lg font-weight-bold label-light-<?php if($row['type'] == 1){ echo'info ';}elseif($row['type'] == 2){echo'warning';}elseif($row['type'] == 4){echo'primary';}else{echo 'success';};?> label-inline"><?php if($row['type'] == 1){echo'Mayorista';}elseif($row['type'] == 2){echo'Publico';}elseif($row['type'] == 4){echo'Ferretero';}else{echo'Socio';};?></span>
                                     </td>
                                     <td>
                                         <?php if ($row['email']):?>
@@ -327,6 +328,7 @@
                                         <option value="1">Mayorista</option>
                                         <option value="2">Publico</option>
                                         <option value="3">Socio</option>
+                                        <option value="4">Ferretero</option>
                                     </select>
                                 </div>
                             </div>

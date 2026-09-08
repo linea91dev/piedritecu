@@ -1678,7 +1678,8 @@ class Tables_model extends CI_Model
                if($tipo==1){ $sub_array[] = $row->cost;} 
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($this->crud_model->last_price_buy($row->products_id),2,'.',',');  
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->farma,2,'.',','); 
-                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');  
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format(isset($row->precio_ferretero)?$row->precio_ferretero:0,2,'.',',');  
                 if(($stock_inventory + $stock_bodega) > $row->alert)
                 {
                     $sub_array[] = '<span class="label label-lg font-weight-bold label-light-success label-inline">Disponible</span>';  
@@ -2212,7 +2213,8 @@ class Tables_model extends CI_Model
                if($tipo==1){ $sub_array[] = $row->cost;} 
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($this->crud_model->last_price_buy($row->products_id),2,'.',',');  
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->farma,2,'.',','); 
-                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');  
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format(isset($row->precio_ferretero)?$row->precio_ferretero:0,2,'.',',');  
                 if(($stock_inventory + $stock_bodega) > $row->alert)
                 {
                     $sub_array[] = '<span class="label label-lg font-weight-bold label-light-success label-inline">Disponible</span>';  
@@ -2290,7 +2292,8 @@ class Tables_model extends CI_Model
                if($tipo==1){ $sub_array[] = $row->cost;} 
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($this->crud_model->last_price_buy($row->products_id),2,'.',',');  
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->farma,2,'.',','); 
-                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');  
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format(isset($row->precio_ferretero)?$row->precio_ferretero:0,2,'.',',');  
                 if(($stock_inventory + $stock_bodega) > $row->alert)
                 {
                     $sub_array[] = '<span class="label label-lg font-weight-bold label-light-success label-inline">Disponible</span>';  
@@ -2368,7 +2371,8 @@ class Tables_model extends CI_Model
                if($tipo==1){ $sub_array[] = $row->cost;} 
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($this->crud_model->last_price_buy($row->products_id),2,'.',',');  
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->farma,2,'.',','); 
-                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');  
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format(isset($row->precio_ferretero)?$row->precio_ferretero:0,2,'.',',');  
                 if(($stock_inventory + $stock_bodega) > $row->alert)
                 {
                     $sub_array[] = '<span class="label label-lg font-weight-bold label-light-success label-inline">Disponible</span>';  
@@ -2445,7 +2449,8 @@ class Tables_model extends CI_Model
                if($tipo==1){ $sub_array[] = $row->cost;} 
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($this->crud_model->last_price_buy($row->products_id),2,'.',',');  
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->farma,2,'.',','); 
-                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');  
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format(isset($row->precio_ferretero)?$row->precio_ferretero:0,2,'.',',');  
                 if(($stock_inventory + $stock_bodega) > $row->alert)
                 {
                     $sub_array[] = '<span class="label label-lg font-weight-bold label-light-success label-inline">Disponible</span>';  
@@ -2787,7 +2792,8 @@ class Tables_model extends CI_Model
                if($tipo==1){ $sub_array[] = $row->cost;} 
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($this->crud_model->last_price_buy($row->products_id),2,'.',',');  
                 $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->farma,2,'.',','); 
-                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');  
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format($row->precio_mayorista,2,'.',',');
+                $sub_array[] = $this->crud_model->get_info("moneda").number_format(isset($row->precio_ferretero)?$row->precio_ferretero:0,2,'.',',');  
                 if(($stock_inventory + $stock_bodega) > $row->alert)
                 {
                     $sub_array[] = '<span class="label label-lg font-weight-bold label-light-success label-inline">Disponible</span>';  

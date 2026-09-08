@@ -3353,10 +3353,12 @@ class Crud_model extends CI_Model {
         $cost     = $this->input->post('cost');
         $price_my = $this->input->post('price_my');
         $price_farma = $this->input->post('price_farma');
+        $price_ferretero = $this->input->post('price_ferretero');
         $discount = $this->input->post('discount');
         $sub      = $this->input->post('sub');
         $sub_my   = $this->input->post('sub_my');
         $sub_farma   = $this->input->post('sub_farma');
+        $sub_ferretero = $this->input->post('sub_ferretero');
         
         $num_products = sizeof($products);
         $cliente_type = 2;
@@ -3369,7 +3371,7 @@ class Crud_model extends CI_Model {
             $iva = 0;
             if (!$producto_indi->iva) $iva = 0;
             else $iva = 1;
-            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'iva'=>$iva);
+            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0), 'iva'=>$iva);
             array_push($producto, $new_producto);
             
             $products_id_2 = 0; $cost2 = $cost[$i];
@@ -3395,6 +3397,9 @@ class Crud_model extends CI_Model {
                 }
                 if($cliente_type==3) {
                     $dat2['price']       = $sub_farma[$i];
+                }
+                if($cliente_type==4) {
+                    $dat2['price']       = isset($sub_ferretero[$i]) ? $sub_ferretero[$i] : 0;
                 }
                 
                 $dat2['date']          = date('Y-m-d');
@@ -3589,10 +3594,12 @@ class Crud_model extends CI_Model {
         $cost        = $this->input->post('cost');
         $price_my    = $this->input->post('price_my');
         $price_farma = $this->input->post('price_farma');
+        $price_ferretero = $this->input->post('price_ferretero');
         $discount    = $this->input->post('discount');
         $sub         = $this->input->post('sub');
         $sub_my      = $this->input->post('sub_my');
         $sub_farma   = $this->input->post('sub_farma');
+        $sub_ferretero = $this->input->post('sub_ferretero');
         
         $num_products = sizeof($products);
         $cliente_type = 2;
@@ -3606,7 +3613,7 @@ class Crud_model extends CI_Model {
             $iva = 0;
             if (!$producto_indi->iva) $iva = 0;
             else $iva = 1;
-            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'iva'=>$iva);
+            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0), 'iva'=>$iva);
             array_push($producto, $new_producto);
             
             $products_id_2 = 0; $cost2 = $cost[$i];
@@ -3636,6 +3643,8 @@ class Crud_model extends CI_Model {
                     }
                     if($cliente_type==3) {
                         $dat2['price'] = $price_farma[$i] / $producto_indi->cnt_prod_matriz;
+                    }elseif($cliente_type==4) {
+                        $dat2['price'] = (isset($price_ferretero[$i]) ? $price_ferretero[$i] : 0) / $producto_indi->cnt_prod_matriz;
                     }else{
                         $dat2['price'] = $price[$i] / $producto_indi->cnt_prod_matriz;
                     }
@@ -3652,6 +3661,9 @@ class Crud_model extends CI_Model {
                     }
                     if($cliente_type==3) {
                         $dat2['price']       = $price_farma[$i];
+                    }
+                    elseif($cliente_type==4) {
+                        $dat2['price']       = isset($price_ferretero[$i]) ? $price_ferretero[$i] : 0;
                     }
                     else
                     {
@@ -3869,10 +3881,12 @@ class Crud_model extends CI_Model {
         $price       = $this->input->post('pricex');
         $price_my    = $this->input->post('pricex_my');
         $price_farma = $this->input->post('pricex_farma');
+        $price_ferretero = $this->input->post('pricex_ferretero');
         $discount    = $this->input->post('discountx');
         $sub         = $this->input->post('subx');
         $sub_my      = $this->input->post('subx_my');
         $sub_farma   = $this->input->post('subx_farma');
+        $sub_ferretero = $this->input->post('subx_ferretero');
         $num_productsx = sizeof($products);
         
 /*      $detalle_venta = $this->db->get_where('product_details',array('activity_ref'=>$code))->result_array();
@@ -3893,7 +3907,7 @@ class Crud_model extends CI_Model {
             $iva = 0;
             if (!$producto_indi->iva) $iva = 0;
             else $iva = 1;
-            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'iva'=>$iva);
+            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0), 'iva'=>$iva);
             array_push($producto, $new_producto);
         }
         
@@ -3903,10 +3917,12 @@ class Crud_model extends CI_Model {
         $price       = $this->input->post('price');
         $price_my    = $this->input->post('price_my');
         $price_farma = $this->input->post('price_farma');
+        $price_ferretero = $this->input->post('price_ferretero');
         $discount    = $this->input->post('discount');
         $sub         = $this->input->post('sub');
         $sub_my      = $this->input->post('sub_my');
         $sub_farma   = $this->input->post('sub_farma');
+        $sub_ferretero = $this->input->post('sub_ferretero');
         
         $num_products = sizeof($products);
         for ($i=0; $i < $num_products ; $i++) { 
@@ -3915,7 +3931,7 @@ class Crud_model extends CI_Model {
             $iva = 0;
             if (!$producto_indi->iva) $iva = 0;
             else $iva = 1;
-            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'iva'=>$iva);
+            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0), 'iva'=>$iva);
             array_push($producto, $new_producto);
             
             $subtotal = ($amount[$i] * $price[$i]);
@@ -3949,6 +3965,8 @@ class Crud_model extends CI_Model {
                     }
                     if($cliente_type==3) {
                         $dat2['price'] = $price_farma[$i] / $producto_indi->cnt_prod_matriz;
+                    }elseif($cliente_type==4) {
+                        $dat2['price'] = (isset($price_ferretero[$i]) ? $price_ferretero[$i] : 0) / $producto_indi->cnt_prod_matriz;
                     }else{
                         $dat2['price'] = $price[$i] / $producto_indi->cnt_prod_matriz;
                     }
@@ -3965,6 +3983,8 @@ class Crud_model extends CI_Model {
                     }
                     if($cliente_type==3) {
                         $dat2['price']       = $price_farma[$i];
+                    }elseif($cliente_type==4) {
+                        $dat2['price']       = isset($price_ferretero[$i]) ? $price_ferretero[$i] : 0;
                     }else{
                         $dat2['price']       = $price[$i];
                     }
@@ -4078,10 +4098,12 @@ class Crud_model extends CI_Model {
         $price       = $this->input->post('pricex');
         $price_my    = $this->input->post('pricex_my');
         $price_farma = $this->input->post('pricex_farma');
+        $price_ferretero = $this->input->post('pricex_ferretero');
         $discount    = $this->input->post('discountx');
         $sub         = $this->input->post('subx');
         $sub_my      = $this->input->post('subx_my');
         $sub_farma   = $this->input->post('subx_farma');
+        $sub_ferretero = $this->input->post('subx_ferretero');
         $num_productsx = sizeof($products);
         
         
@@ -4093,7 +4115,7 @@ class Crud_model extends CI_Model {
             $iva = 0;
             if (!$producto_indi->iva) $iva = 0;
             else $iva = 1;
-            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'iva'=>$iva);
+            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0), 'iva'=>$iva);
             array_push($producto, $new_producto);
         }
         
@@ -4103,10 +4125,12 @@ class Crud_model extends CI_Model {
         $price       = $this->input->post('price');
         $price_my    = $this->input->post('price_my');
         $price_farma = $this->input->post('price_farma');
+        $price_ferretero = $this->input->post('price_ferretero');
         $discount    = $this->input->post('discount');
         $sub         = $this->input->post('sub');
         $sub_my      = $this->input->post('sub_my');
         $sub_farma   = $this->input->post('sub_farma');
+        $sub_ferretero = $this->input->post('sub_ferretero');
         
         $num_products = sizeof($products);
         for ($i=0; $i < $num_products ; $i++) 
@@ -4116,7 +4140,7 @@ class Crud_model extends CI_Model {
             $iva = 0;
             if (!$producto_indi->iva) $iva = 0;
             else $iva = 1;
-            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'iva'=>$iva);
+            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0), 'iva'=>$iva);
             array_push($producto, $new_producto);
             
             $subtotal = ($amount[$i] * $price[$i]);
@@ -4155,6 +4179,9 @@ class Crud_model extends CI_Model {
                     elseif($cliente_type==3) {
                         $dat2['price'] = $price_farma[$i] / $producto_indi->cnt_prod_matriz;
                     }
+                    elseif($cliente_type==4) {
+                        $dat2['price'] = (isset($price_ferretero[$i]) ? $price_ferretero[$i] : 0) / $producto_indi->cnt_prod_matriz;
+                    }
                     else{
                         $dat2['price'] = $price[$i] / $producto_indi->cnt_prod_matriz;
                     }
@@ -4171,6 +4198,9 @@ class Crud_model extends CI_Model {
                     }
                     elseif($cliente_type==3) {
                         $dat2['price']       = $price_farma[$i];
+                    }
+                    elseif($cliente_type==4) {
+                        $dat2['price']       = isset($price_ferretero[$i]) ? $price_ferretero[$i] : 0;
                     }
                     else {
                         $dat2['price']       = $price[$i];
@@ -6238,10 +6268,12 @@ function new_change()
         $cost        = $this->input->post('cost');
         $price_my    = $this->input->post('price_my');
         $price_farma = $this->input->post('price_farma');
+        $price_ferretero = $this->input->post('price_ferretero');
         $discount    = $this->input->post('discount');
         $sub         = $this->input->post('sub');
         $sub_my      = $this->input->post('sub_my');
         $sub_farma   = $this->input->post('sub_farma');
+        $sub_ferretero = $this->input->post('sub_ferretero');
         
         // log_message("error", "Farma: ".sizeof($price_farma).", Sub farma: ".sizeof($sub_farma));
         // log_message("error", "Total: ".$this->input->post('ttl'));
@@ -6250,7 +6282,7 @@ function new_change()
         $quote =  array();
 
         for ($i=0; $i < $num_products; $i++) { 
-            $new_quote = array('product'=>$products[$i], 'amount'=>$amount[$i], 'cost'=>$cost[$i], 'price'=>$price[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i]);
+            $new_quote = array('product'=>$products[$i], 'amount'=>$amount[$i], 'cost'=>$cost[$i], 'price'=>$price[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0));
             array_push($quote, $new_quote);
         }
 
@@ -6278,16 +6310,18 @@ function new_change()
         $price       = $this->input->post('price');
         $price_my    = $this->input->post('price_my');
         $price_farma = $this->input->post('price_farma');
+        $price_ferretero = $this->input->post('price_ferretero');
         $discount    = $this->input->post('discount');
         $sub         = $this->input->post('sub');
         $sub_my      = $this->input->post('sub_my');
         $sub_farma   = $this->input->post('sub_farma');
+        $sub_ferretero = $this->input->post('sub_ferretero');
 
         $num_products = sizeof($productos);
         $quote =  array();
 
         for ($i=0; $i < $num_products ; $i++) { 
-            $new_quote = array('product'=>$productos[$i], 'amount'=>$amount[$i], 'cost'=>$cost[$i], 'price'=>$price[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i]);
+            $new_quote = array('product'=>$productos[$i], 'amount'=>$amount[$i], 'cost'=>$cost[$i], 'price'=>$price[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0));
             array_push($quote, $new_quote);
         }
 
@@ -6516,6 +6550,13 @@ function new_change()
             $this->db->select('precio_mayorista');
             $this->db->where('products_id',$product_id);
             return $this->db->get('products')->row()->precio_mayorista;
+    }
+    function last_price_buy_ferretero($product_id)
+    {
+            $this->db->select('precio_ferretero');
+            $this->db->where('products_id',$product_id);
+            $row = $this->db->get('products')->row();
+            return isset($row->precio_ferretero) ? $row->precio_ferretero : 0;
     }
     
     function last_cost($product_id, $branch_id = '')
@@ -6752,6 +6793,7 @@ function new_change()
         $data['weight']             = $this->input->post('weight');
         $data['farma']              = $this->input->post('farma');
         $data['precio_mayorista']   = $this->input->post('may');
+        $data['precio_ferretero']   = $this->input->post('ferretero');
         $data['old_may']            = $this->input->post('old_may');
         $data['unit']               = $this->input->post('unit');
         $data['description']        = trim($this->input->post('description'));
@@ -6861,6 +6903,7 @@ function new_change()
         $data['name']               = $this->input->post('name');
         $data['code']               = $this->input->post('code');
         $data['precio_mayorista']   = $this->input->post('may');
+        $data['precio_ferretero']   = $this->input->post('ferretero');
         $data['provider']           = $this->input->post('provider');
         $data['price']              = $this->input->post('price');
         $data['farma']              = $this->input->post('farma');

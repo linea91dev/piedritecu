@@ -2,9 +2,10 @@
     $clien = $this->db->get_where("client", array('client_id'=>$row['client_id']))->row_array();
     $type = $clien['type'];
     log_message("error", "Client type: ".$type);
-    if($type == '1' || $type == '3') log_message("error", "No minorista");
+    if($type == '1' || $type == '3' || $type == '4') log_message("error", "No minorista");
     if($type != '1') log_message("error", "No mayorista");
-    if($type != '3') log_message("error", "No farmacia");?>
+    if($type != '3') log_message("error", "No farmacia");
+    if($type != '4') log_message("error", "No ferretero");?>
 <div class="container-fluid">
     <form class="form" action="<?php echo base_url().'admin/cotizaciones/update/'.$ID;?>" method="POST"
         enctype="multipart/form-data">
@@ -64,13 +65,15 @@
                                     <tr>
                                         <th>Producto</th>
                                         <th>Cantidad</th>
-                                        <th class="client_mn" style="<?php if($clien['type'] == '1' || $clien['type'] == '3') echo "display:none;";?>">Precio unitario</th>
+                                        <th class="client_mn" style="<?php if($clien['type'] == '1' || $clien['type'] == '3' || $clien['type'] == '4') echo "display:none;";?>">Precio unitario</th>
                                         <th class="client_my" style="<?php if($clien['type'] != '1') echo "display:none;";?>">Precio mayorista</th>
                                         <th class="client_farma" style="<?php if($clien['type'] != '3') echo "display:none;";?>">Precio farmacia</th>
+                                        <th class="client_ferretero" style="<?php if($clien['type'] != '4') echo "display:none;";?>">Precio Ferretero</th>
                                         <th>Descuento</th>
-                                        <th class="client_mn" style="<?php if($clien['type'] == '1' || $clien['type'] == '3') echo "display:none;";?>">Subtotal</th>
+                                        <th class="client_mn" style="<?php if($clien['type'] == '1' || $clien['type'] == '3' || $clien['type'] == '4') echo "display:none;";?>">Subtotal</th>
                                         <th class="client_my" style="<?php if($clien['type'] != '1') echo "display:none;";?>">Subtotal mayorista</th>
-                                        <th class="client_farma" style="<?php if($clien['type'] != '3') echo "display:none;";?>">Precio farmacia</th>
+                                        <th class="client_farma" style="<?php if($clien['type'] != '3') echo "display:none;";?>">Subtotal farmacia</th>
+                                        <th class="client_ferretero" style="<?php if($clien['type'] != '4') echo "display:none;";?>">Subtotal ferretero</th>
                                         <th>-</th>
                                     </tr>
                                 </thead>
@@ -98,7 +101,7 @@
                                                 name="amount[]" value="<?php echo $pro[$i]['amount']?>"
                                                 onblur="sum('<?php echo $i;?>')">
                                         </td>
-                                        <td class="client_mn" style="<?php if($clien['type'] == '2' || $clien['type'] == '3') echo "display:none;";?>"><input min="1" max="999" class="form-control" type="number"
+                                        <td class="client_mn" style="<?php if($clien['type'] == '1' || $clien['type'] == '3' || $clien['type'] == '4') echo "display:none;";?>"><input min="1" max="999" class="form-control" type="number"
                                                 style="width:110px" step="any" id="price-<?php echo $i;?>"
                                                 name="price[]" value="<?php echo $pro[$i]['price']?>"
                                                 onblur="sum('<?php echo $i;?>')">
@@ -111,12 +114,17 @@
                                                 name="price_farma[]" value="<?php echo $pro[$i]['price_farma']?>"
                                                 onblur="sum('<?php echo $i;?>')">
                                         </td>
+                                        <td class="client_ferretero" style="<?php if($clien['type'] != '4') echo "display:none;";?>"><input min="1" max="999" class="form-control" type="number"
+                                                style="width:110px" step="any" id="price_ferretero-<?php echo $i;?>"
+                                                name="price_ferretero[]" value="<?php echo isset($pro[$i]['price_ferretero']) ? $pro[$i]['price_ferretero'] : 0;?>"
+                                                onblur="sum('<?php echo $i;?>')">
+                                        </td>
                                         <td><input min="0" max="999" class="form-control discount" type="number"
                                                 style="width:110px" step="any" id="discount-<?php echo $i;?>"
                                                 name="discount[]" value="<?php echo $pro[$i]['discount']?>"
                                                 onblur="sum('<?php echo $i;?>')">
                                         </td>
-                                        <td  class="client_mn" style="<?php if($clien['type'] == '1' || $clien['type'] == '3') echo "display:none;";?>"><span class="text-success"
+                                        <td  class="client_mn" style="<?php if($clien['type'] == '1' || $clien['type'] == '3' || $clien['type'] == '4') echo "display:none;";?>"><span class="text-success"
                                                 id='sub-<?php echo $i;?>'><?php echo $moneda.number_format($pro[$i]['sub'],2,'.',',');?></span>
                                             <input type="hidden" class='total' name="sub[]" id='subt-<?php echo $i;?>'>
                                             <input type="hidden" class='descuento' name="desc[]" id='desc-<?php echo $i;?>'>
@@ -129,6 +137,11 @@
                                         <td class="client_farma" style="<?php if($clien['type'] != '3') echo "display:none;";?>"><span class="text-success"
                                                 id='sub_farma-<?php echo $i;?>'><?php echo $moneda.number_format($pro[$i]['sub_farma'],2,'.',',');?></span>
                                             <input type="hidden" class='total_farma' name="sub_farma[]" id='subt_farma-<?php echo $i;?>'>
+                                            <input type="hidden" class='descuento' name="desc[]" id='desc-<?php echo $i;?>'>
+                                        </td>
+                                        <td class="client_ferretero" style="<?php if($clien['type'] != '4') echo "display:none;";?>"><span class="text-success"
+                                                id='sub_ferretero-<?php echo $i;?>'><?php echo $moneda.number_format(isset($pro[$i]['sub_ferretero']) ? $pro[$i]['sub_ferretero'] : 0,2,'.',',');?></span>
+                                            <input type="hidden" class='total_ferretero' name="sub_ferretero[]" id='subt_ferretero-<?php echo $i;?>'>
                                             <input type="hidden" class='descuento' name="desc[]" id='desc-<?php echo $i;?>'>
                                         </td>
                                         <td>
@@ -219,6 +232,7 @@
 var moneda = '<?php echo $moneda; ?>';
 var mayorista = <?php if($clien['type'] != '1') echo "false"; else echo "true";?>;
 var cl_farma = <?php if($clien['type'] != '3') echo "false"; else echo "true";?>;
+var cl_ferretero = <?php if($clien['type'] != '4') echo "false"; else echo "true";?>;
 
 $(document).ready(function() {
     <?php for ($i=0; $i < $row['num_products'] ; $i++):?>
@@ -273,6 +287,7 @@ function sum(i, v) {
     var precio = $('#price-' + i).val();
     var precio_my = $('#price_my-' + i).val();
     var precio_farma = $('#price_farma-' + i).val();
+    var precio_ferretero = $('#price_ferretero-' + i).val() || 0;
     var descuento = $('#discount-' + i).val();
     var prPrice = $('#prPrice-' + i).val();
 
@@ -315,7 +330,7 @@ function sum(i, v) {
         $('#codigoAuth').hide(500);
     }
 
-    if (total < precio_producto) {
+    if (total < precio_producto && !mayorista && cl_farma==false && cl_ferretero==false) {
         $('#mensaje-' + i).show(500);
         var COSTO = parseFloat(precio_producto);
         var PRECIO = parseFloat(prPrice);
@@ -324,6 +339,14 @@ function sum(i, v) {
 
         var ms =
             `<td><small class="text-danger" id="ms-descuento"> El costo del producto es  <b>${moneda}${precio_producto}</b> y el descuento es <b>${descuento}%</b> el cual te dará una ganancia negativa </small></td>`;
+        $('#mensaje-' + i).html(ms);
+    } else if (Number(precio_farma) < Number(precio_producto) && cl_farma) {
+        $('#mensaje-' + i).show(500);
+        var ms =`<td><small class="text-danger" id="ms-descuento"> El costo del producto es  <b>${moneda}${precio_producto}</b> y el precio de venta es <b>${moneda}${precio_farma}</b> el cual te dará una ganancia negativa </small></td>`;
+        $('#mensaje-' + i).html(ms);
+    } else if (Number(precio_ferretero) < Number(precio_producto) && cl_ferretero) {
+        $('#mensaje-' + i).show(500);
+        var ms =`<td><small class="text-danger" id="ms-descuento"> El costo del producto es  <b>${moneda}${precio_producto}</b> y el precio de venta es <b>${moneda}${precio_ferretero}</b> el cual te dará una ganancia negativa </small></td>`;
         $('#mensaje-' + i).html(ms);
     } else {
         $('#mensaje-' + i).html('');
@@ -348,7 +371,14 @@ function sum(i, v) {
     $('#sub_farma-' + i).html(moneda + ' ' + total_farma.toFixed(2));
     $('#subt_farma-' + i).val(total_farma.toFixed(2));
 
-    if (!mayorista && cl_farma==false) {
+    var mul_ferretero = (parseFloat(cantidad) * parseFloat(precio_ferretero));
+    var des_ferretero = mul_ferretero * (descuento / 100);
+    var total_ferretero = mul_ferretero - des_ferretero;
+
+    $('#sub_ferretero-' + i).html(moneda + ' ' + total_ferretero.toFixed(2));
+    $('#subt_ferretero-' + i).val(total_ferretero.toFixed(2));
+
+    if (!mayorista && cl_farma==false && cl_ferretero==false) {
         console.log("Entra a minorista");
         var suma = 0;
         $('.total').each(function() {
@@ -364,6 +394,16 @@ function sum(i, v) {
         var suma = 0;
         $('.total_farma').each(function() {
             suma += parseFloat($(this).val());
+        });
+
+        $('#total').html(moneda + suma.toFixed(2));
+        $('#ttl').val(suma.toFixed(2));
+
+    } else if(cl_ferretero) {
+        console.log("Entra a ferretero");
+        var suma = 0;
+        $('.total_ferretero').each(function() {
+            suma += parseFloat($(this).val() || 0);
         });
 
         $('#total').html(moneda + suma.toFixed(2));

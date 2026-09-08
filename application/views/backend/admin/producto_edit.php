@@ -255,6 +255,14 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label>Precio Ferretero <span class="text-danger">*</span> </label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" aria-label="Text input with checkbox" id='ferretero' required name='ferretero' min='0' step='any' onchange="ganancia()" onblur="ganancia()" oninput="ganancia()" value='<?php echo isset($row['precio_ferretero']) ? $row['precio_ferretero'] : 0;?>' <?php if($user_type != '1') echo "";?>/>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div class="col-sm-3">
                                 <div class="form-group">

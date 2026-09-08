@@ -68,6 +68,7 @@
                         <option value="1" <?php echo ($row['type']==1)? 'selected':'' ?>>Mayorista</option>
                         <option value="2" <?php echo ($row['type']==2)? 'selected':'' ?>>Publico</option>
                         <option value="3" <?php echo ($row['type']==3)? 'selected':'' ?>>Socio</option>
+                        <option value="4" <?php echo ($row['type']==4)? 'selected':'' ?>>Ferretero</option>
                     </select>
                 </div>
             </div>

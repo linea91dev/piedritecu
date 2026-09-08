@@ -4650,6 +4650,10 @@ class Admin extends CI_Controller
             
             $precio_my = $this->db->get_Where('products', array('products_id'=>$pro))->row()->precio_mayorista; 
             if ($user_type != 1){ $min_cost_my=$precio_my; }else{$min_cost_my=$cost;}
+
+            $precio_ferretero = isset($this->db->get_Where('products', array('products_id'=>$pro))->row()->precio_ferretero)
+                ? $this->db->get_Where('products', array('products_id'=>$pro))->row()->precio_ferretero : 0;
+            if ($user_type != 1){ $min_cost_ferretero=$precio_ferretero; }else{$min_cost_ferretero=$cost;}
             
             $table = '<tr id="producto-'.$pro.'">
             <td><span class="product_name">'.$row['name'].' (';
@@ -4671,6 +4675,10 @@ class Admin extends CI_Controller
                 <input min="'.$min_cost_farma.'" class="form-control" type="number" style="width:110px" step="any" id="price_farma-'.$pro.'" name="price_farma[]" value="'.$precio_farma.'" onchange="sum('.$pro.','.$pro.',4)" autofocus>
                 <input type="hidden" id="prPrice_farma-'.$pro.'" value="'.$precio_farma.'">
             </td>
+            <td class="client-ferretero">
+                <input min="'.$min_cost_ferretero.'" class="form-control" type="number" style="width:110px" step="any" id="price_ferretero-'.$pro.'" name="price_ferretero[]" value="'.$precio_ferretero.'" onchange="sum('.$pro.','.$pro.',5)" autofocus>
+                <input type="hidden" id="prPrice_ferretero-'.$pro.'" value="'.$precio_ferretero.'">
+            </td>
             <td class="client-my">
                 <input min="'.$min_cost_my.'" class="form-control" type="number" style="width:110px" step="any" id="price_my-'.$pro.'" name="price_my[]" value="'.$precio_my.'" onchange="sum('.$pro.','.$pro.',2)" autofocus>
                 <input type="hidden" id="prPrice_my-'.$pro.'" value="'.$precio_my.'">
@@ -4686,6 +4694,10 @@ class Admin extends CI_Controller
             <td class="client-farma">
                 <span class="text-success" id="sub_farma-'.$pro.'">'.$moneda.'1.00</span> 
                 <input type="hidden" class="total_farma" name="sub_farma[]" id="subt_farma-'.$pro.'"  step="any">
+            </td>
+            <td class="client-ferretero">
+                <span class="text-success" id="sub_ferretero-'.$pro.'">'.$moneda.'1.00</span> 
+                <input type="hidden" class="total_ferretero" name="sub_ferretero[]" id="subt_ferretero-'.$pro.'"  step="any">
             </td>
             <td class="client-my">
                 <span class="text-success" id="sub_my-'.$pro.'">'.$moneda.'1.00</span> 
@@ -4744,6 +4756,9 @@ class Admin extends CI_Controller
             if ($user_type != 1){ $min_cost_farma=$precio_farma; }else{$min_cost_farma=$cost;}
             $precio_my = $this->db->get_Where('products', array('products_id'=>$pro))->row()->precio_mayorista; 
             if ($user_type != 1){ $min_cost_my=$precio_my; }else{$min_cost_my=$cost;}
+            $prod_row = $this->db->get_Where('products', array('products_id'=>$pro))->row();
+            $precio_ferretero = isset($prod_row->precio_ferretero) ? $prod_row->precio_ferretero : 0;
+            if ($user_type != 1){ $min_cost_ferretero=$precio_ferretero; }else{$min_cost_ferretero=$cost;}
             
             $table = '<tr id="producto-'.$pro.'">
             <td><span class="product_name">'.$row['name'].' (';
@@ -4765,6 +4780,10 @@ class Admin extends CI_Controller
                 <input min="'.$min_cost_farma.'" class="form-control" type="number" style="width:110px" step="any" id="price_farma-'.$pro.'" name="price_farma[]" value="'.$precio_farma.'"  onChange="sum('.$pro.','.$pro.',4)" onInput="sum('.$pro.','.$pro.',2)" autofocus>
                 <input type="hidden" id="prPrice_farma-'.$pro.'" value="'.$precio_farma.'">
             </td>
+            <td class="client-ferretero">
+                <input min="'.$min_cost_ferretero.'" class="form-control" type="number" style="width:110px" step="any" id="price_ferretero-'.$pro.'" name="price_ferretero[]" value="'.$precio_ferretero.'"  onChange="sum('.$pro.','.$pro.',5)" onInput="sum('.$pro.','.$pro.',5)" autofocus>
+                <input type="hidden" id="prPrice_ferretero-'.$pro.'" value="'.$precio_ferretero.'">
+            </td>
             <td class="client-my">
                 <input min="'.$min_cost_my.'" class="form-control" type="number" style="width:110px" step="any" id="price_my-'.$pro.'" name="price_my[]" value="'.$precio_my.'"  onChange="sum('.$pro.','.$pro.',2)" onInput="sum('.$pro.','.$pro.',2)"  autofocus>
                 <input type="hidden" id="prPrice_my-'.$pro.'" value="'.$precio_my.'">
@@ -4779,6 +4798,10 @@ class Admin extends CI_Controller
             <td class="client-farma">
                 <span class="text-success" id="sub_farma-'.$pro.'">'.$moneda.'1.00</span> 
                 <input type="hidden" class="total_farma" name="sub_farma[]" id="subt_farma-'.$pro.'"  step="any">
+            </td>
+            <td class="client-ferretero">
+                <span class="text-success" id="sub_ferretero-'.$pro.'">'.$moneda.'1.00</span> 
+                <input type="hidden" class="total_ferretero" name="sub_ferretero[]" id="subt_ferretero-'.$pro.'"  step="any">
             </td>
             <td class="client-my">
                 <span class="text-success" id="sub_my-'.$pro.'">'.$moneda.'1.00</span> 
@@ -9166,6 +9189,9 @@ function validarXML($code){
         }elseif($cliente->type == 3 ){
             $type_price = 'price_farma';
             $type_sub = 'sub_farma';
+        }elseif($cliente->type == 4 ){
+            $type_price = 'price_ferretero';
+            $type_sub = 'sub_ferretero';
         }
         else{
             $type_price = 'price';
@@ -9410,9 +9436,12 @@ function validarXMLCambiaria($code){
         }elseif($cliente->type == 2){
             $type_price = 'price';
             $type_sub = 'sub';
-        }if($cliente->type == 3 ){
+        }elseif($cliente->type == 3 ){
             $type_price = 'price_farma';
             $type_sub = 'sub_farma';
+        }elseif($cliente->type == 4 ){
+            $type_price = 'price_ferretero';
+            $type_sub = 'sub_ferretero';
         }
     $productos = json_decode($sale_data->products,true);
     $total = $sale_data->total;

@@ -14,6 +14,9 @@
     .client-farma {
         display: none;
     }
+    .client-ferretero {
+        display: none;
+    }
     <?php elseif($client_type == 2):?>
     .client-my {
         display: none;
@@ -21,11 +24,27 @@
     .client-farma {
         display: none;
     }
+    .client-ferretero {
+        display: none;
+    }
     <?php elseif($client_type == 3):?>
     .client-mn {
         display: none;
     }
     .client-my {
+        display: none;
+    }
+    .client-ferretero {
+        display: none;
+    }
+    <?php elseif($client_type == 4):?>
+    .client-mn {
+        display: none;
+    }
+    .client-my {
+        display: none;
+    }
+    .client-farma {
         display: none;
     }
     <?php endif;?>
@@ -94,7 +113,7 @@
                                     <div class="col-sm-4">
                                         <div class="form-group">
                                             <label><b>Tipo cliente:</b></label><br>
-                                            <?php if($rw['my']==1){echo "Mayorista";}elseif($rw['my']==3){echo "Farmacia";}else{echo "Publico";};?>
+                                            <?php if($rw['my']==1){echo "Mayorista";}elseif($rw['my']==3){echo "Farmacia";}elseif($rw['my']==4){echo "Ferretero";}else{echo "Publico";};?>
                                         </div>
                                     </div>
             
@@ -233,9 +252,11 @@
                                         <th class="client-mn">Precio</th>
                                         <th class="client-my">Precio mayorista</th>
                                         <th class="client-farma">Precio farmacia</th>
+                                        <th class="client-ferretero">Precio Ferretero</th>
                                         <th class="client-mn">Subtotal</th>
                                         <th class="client-my">Subtotal mayorista</th>
                                         <th class="client-farma">Subtotal farmacia</th>
+                                        <th class="client-ferretero">Subtotal ferretero</th>
                                         <th>-</th>
                                     </tr>
                                 </thead>
@@ -252,7 +273,9 @@
                                         <?php if($validity > 0):
                                             $subX = $pr['amount']*$pr['price'];
                                             $subX_my = $pr['amount']*$pr['price_my'];
-                                            $subX_farma = $pr['amount']*$pr['price_farma'];?>
+                                            $subX_farma = $pr['amount']*$pr['price_farma'];
+                                            $price_ferretero = isset($pr['price_ferretero']) ? $pr['price_ferretero'] : (isset($prod['precio_ferretero']) ? $prod['precio_ferretero'] : 0);
+                                            $subX_ferretero = $pr['amount']*$price_ferretero;?>
                                     <tr>
                                         <td><?php echo $this->db->get_where('products', array('products_id' => $pr['product']))->row()->code;?></td>
                                         <td>
@@ -288,6 +311,13 @@
                                             <span class="totalx" style="display:none;"><?php echo $subX_farma;?></span>
                                             <input type="hidden" name="pricex_farma[]" value="<?php echo $pr['price_farma'];?>" />
                                             <input type="hidden" class="total_farma" name="subx_farma[]" value="<?php echo $subX_farma;?>" />
+                                        </td>
+                                        <td class="client-ferretero"><?php echo number_format($price_ferretero,2,'.','');?></td>
+                                        <td class="client-ferretero">
+                                            <span class="text-success" id="subs_ferretero_<?php echo $pr['product'];?>">Q<?php echo $subX_ferretero;?></span> 
+                                            <span class="totalx" style="display:none;"><?php echo $subX_ferretero;?></span>
+                                            <input type="hidden" name="pricex_ferretero[]" value="<?php echo $price_ferretero;?>" />
+                                            <input type="hidden" class="total_ferretero" name="subx_ferretero[]" value="<?php echo $subX_ferretero;?>" />
                                         </td>
                                         <td>
                                             <a class="badge badge-danger" style="padding:3px;" onclick="deletProdEdit('<?php echo $pr['product'];?>','<?php echo $code;?>',this)" href="javascript:void(0)">
@@ -353,10 +383,12 @@
                                         <th>Cantidad</th>
                                         <th class="client-mn">Precio</th>
                                         <th class="client-farma">Precio Farmacia</th>
+                                        <th class="client-ferretero">Precio Ferretero</th>
                                         <th class="client-my">Precio Mayoristas</th>
                                         <th>Descuento <small>(%)</small></th>
                                         <th class="client-mn">Subtotal</th>
                                         <th class="client-farma">Subtotal farmacia</th>
+                                        <th class="client-ferretero">Subtotal ferretero</th>
                                         <th class="client-my">Subtotal Mayoristas</th>
                                         <th>-</th>
                                     </tr>
@@ -369,10 +401,12 @@
                                         <th></th>
                                         <th class="client-mn"></th>
                                         <th class="client-farma"></th>
+                                        <th class="client-ferretero"></th>
                                         <th class="client-my"></th>
                                         <th></th>
                                         <th class="client-mn"></th>
                                         <th class="client-farma"></th>
+                                        <th class="client-ferretero"></th>
                                         <th class="client-my"></th>
                                         <th>
                                         </th>
@@ -613,6 +647,7 @@ function sum(id, i, v)
     var precio = $('#price-' + i).val();
     var precio_my = $('#price_my-' + i).val();
     var precio_farma = $('#price_farma-' + i).val();
+    var precio_ferretero = $('#price_ferretero-' + i).val() || 0;
     var descuento = $('#discount-' + i).val();
     var prPrice = $('#prPrice-' + i).val();
     $('#mensaje-' + i).queue(function(n) 
@@ -683,7 +718,8 @@ function sum(id, i, v)
     {
         $('.nueva_venta').removeAttr('hidden');
     }
-    if (total < precio_producto) 
+    var client_type = $("#client_type").val();
+    if (total < precio_producto && client_type != '3' && client_type != '4' && client_type != '1') 
     {
         $('#mensaje-' + i).show(500);
         var COSTO = parseFloat(precio_producto);
@@ -692,6 +728,12 @@ function sum(id, i, v)
         var TOTAL = ((PRECIO - COSTO) / COSTO) * 100;
         
         var ms =`<td><small class="text-danger" id="ms-descuento"> El costo del producto es  <b>${moneda}${precio_producto}</b> y el descuento es <b>${descuento}%</b> el cual te dará una ganancia negativa </small></td>`;
+        $('#mensaje-' + i).html(ms);
+    }
+    else if (Number(precio_ferretero) < Number(precio_producto) && client_type == '4')
+    {
+        $('#mensaje-' + i).show(500);
+        var ms =`<td><small class="text-danger" id="ms-descuento"> El costo del producto es  <b>${moneda}${precio_producto}</b> y el precio de venta es <b>${moneda}${precio_ferretero}</b> el cual te dará una ganancia negativa </small></td>`;
         $('#mensaje-' + i).html(ms);
     }
     else 
@@ -716,9 +758,15 @@ function sum(id, i, v)
 
     $('#sub_farma-' + i).html(moneda + ' ' + total_farma.toFixed(2));
     $('#subt_farma-' + i).val(total_farma.toFixed(2));
+
+    var mul_ferretero = (parseFloat(cantidad) * parseFloat(precio_ferretero));
+    var des_ferretero = mul_ferretero * (descuento / 100);
+    var total_ferretero = mul_ferretero - des_ferretero;
+
+    $('#sub_ferretero-' + i).html(moneda + ' ' + total_ferretero.toFixed(2));
+    $('#subt_ferretero-' + i).val(total_ferretero.toFixed(2));
     
     var suma = 0;
-    var client_type = $("#client_type").val();
     if (client_type == '2') {
         $('.total').each(function() {
             suma += parseFloat($(this).val());
@@ -730,6 +778,10 @@ function sum(id, i, v)
     } else if (client_type == '3') {
         $('.total_farma').each(function() {
             suma += parseFloat($(this).val());
+        });
+    } else if (client_type == '4') {
+        $('.total_ferretero').each(function() {
+            suma += parseFloat($(this).val() || 0);
         });
     }
     total = suma;
@@ -791,6 +843,10 @@ function sum(id, i, v)
         } else if (client_type == '3') {
             $('.total_farma').each(function() {
                 suma += parseFloat($(this).val());
+            });
+        } else if (client_type == '4') {
+            $('.total_ferretero').each(function() {
+                suma += parseFloat($(this).val() || 0);
             });
         }
         total = suma;
