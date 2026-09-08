@@ -4656,10 +4656,7 @@ class Admin extends CI_Controller
             if ($user_type != 1){ $min_cost_ferretero=$precio_ferretero; }else{$min_cost_ferretero=$cost;}
             
             $table = '<tr id="producto-'.$pro.'">
-            <td><span class="product_name">'.$row['name'].' (';
-            if (!$row['iva']) $table .= 'Exento';
-            else $table .= 'Afecto';
-            $table .= ')</span> 
+            <td><span class="product_name">'.$row['name'].'</span> 
                 <input type="hidden"  id ="productoss-'.$pro.'" name="product[]" value="'.$row['products_id'].'">  
                 <input type="hidden"  id ="cost-'.$pro.'" name="cost[]" value="'.$cost.'"> 
             </td>
@@ -4761,10 +4758,7 @@ class Admin extends CI_Controller
             if ($user_type != 1){ $min_cost_ferretero=$precio_ferretero; }else{$min_cost_ferretero=$cost;}
             
             $table = '<tr id="producto-'.$pro.'">
-            <td><span class="product_name">'.$row['name'].' (';
-            if (!$row['iva']) $table .= 'Exento';
-            else $table .= 'Afecto';
-            $table .= ')</span> 
+            <td><span class="product_name">'.$row['name'].'</span> 
                 <input type="hidden"  id ="productoss-'.$pro.'" name="product[]" value="'.$row['products_id'].'">  
                 <input type="hidden"  id ="cost-'.$pro.'" name="cost[]" value="'.$cost.'"> 
             </td>
@@ -6648,10 +6642,7 @@ echo $table;
                                     </div>
                                     <div class="ml-4">
                                         <div class="text-dark-75 font-weight-normal font-size-lg mb-0">
-                                            '.$row['name'].' - '.$row['code'].' (';
-                        if (!$row['iva']) $table .= 'Exento';
-                        else $table .= 'Afecto';
-                        $table .= ') - <b class="text-danger">Q.'.$this->crud_model->last_price_buy($row['products_id'], 0).' - <b class="text-primary">Q.'.$this->crud_model->last_price_buy_farma($row['products_id']).' - <b class="text-success">Q.'.$this->crud_model->last_price_buy_my($row['products_id']).'</b>
+                                            '.$row['name'].' - '.$row['code'].' - <b class="text-danger">Q.'.$this->crud_model->last_price_buy($row['products_id'], 0).' - <b class="text-primary">Q.'.$this->crud_model->last_price_buy_farma($row['products_id']).' - <b class="text-success">Q.'.$this->crud_model->last_price_buy_my($row['products_id']).'</b>
                                         </div>
                                         <a href="javascript:void(0);" class="text-muted font-weight-bold text-hover-primary">Tienda:
                                             <span class="label label-lg font-weight-bold  label-light-info label-inline">'.$stock_inventory.'</span></a>
@@ -6725,10 +6716,7 @@ echo $table;
                                 </div>
                                 <div class="ml-4">
                                     <div class="text-dark-75 font-weight-normal font-size-lg mb-0">
-                                        '.$row['name'].' - '.$row['code'].' (';
-                        if (!$row['iva']) $table .= 'Exento';
-                        else $table .= 'Afecto';
-                        $table .= ') - <b class="text-danger">Q.'.$this->crud_model->last_price_buy($row['products_id'], 0).' - <b class="text-primary">Q.'.$this->crud_model->last_price_buy_farma($row['products_id']).' - <b class="text-success">Q.'.$this->crud_model->last_price_buy_my($row['products_id']).'</b>
+                                        '.$row['name'].' - '.$row['code'].' - <b class="text-danger">Q.'.$this->crud_model->last_price_buy($row['products_id'], 0).' - <b class="text-primary">Q.'.$this->crud_model->last_price_buy_farma($row['products_id']).' - <b class="text-success">Q.'.$this->crud_model->last_price_buy_my($row['products_id']).'</b>
                                     </div>
                                    
                                     <a href="javascript:void(0);" class="text-muted font-weight-bold text-hover-primary">Tienda:
