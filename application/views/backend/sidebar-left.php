@@ -979,7 +979,7 @@
 
 
                             <div class="form-group" id='codigoAuth'>
-                                <label> Código de autorización para aplicar descuentos/crédito: <span class="text-danger">*</span></label>
+                                <label> Código de autorización para aplicar descuentos: <span class="text-danger">*</span></label>
                                 <div class=" spinner-success spinner-left" id='spinnerCode'>
                                     <input type="password" autocomplete="off" class='form-control' id='code' placeholder='Ingresa el código de autorización' autofocus onblur="getCodigo(this.value)">
                                 </div>
@@ -1212,7 +1212,7 @@
                             <input type="hidden" name="numero_fel" id='numero_fel' value=''>
 
                             <div class="form-group" id='codigoAuth'>
-                                <label> Código de autorización para aplicar descuentos/crédito: <span class="text-danger">*</span></label>
+                                <label> Código de autorización para aplicar descuentos: <span class="text-danger">*</span></label>
                                 <div class=" spinner-success spinner-left" id='spinnerCode'>
                                     <input type="password" autocomplete="off" class='form-control' id='code' placeholder='Ingresa el código de autorización' autofocus onkeyup="getCodigo(this.value)" onblur="getCodigo(this.value)">
                                 </div>

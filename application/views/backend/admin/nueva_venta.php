@@ -761,10 +761,13 @@ function verificarCodigo () {
         sumaDescuento += parseFloat($(this).val());
     });
 
-    if ((sumaDescuento > 0  || nw_credito) && descuentos == 0) {
+    if (sumaDescuento > 0 && descuentos == 0) {
         $('#codigoAuth').show(500);
         $('.nueva_venta').attr('hidden', true);
     } else {
+        if (sumaDescuento == 0) {
+            $('#codigoAuth').hide(500);
+        }
         $('.nueva_venta').removeAttr('hidden');
     }
 }
