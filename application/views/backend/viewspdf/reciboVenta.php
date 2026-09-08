@@ -113,6 +113,15 @@ ini_set("memory_limit","500M");
         <td style="text-align: center;"></td>
         <td style="text-align: center;">-------</td>
     </tr>
+    <?php if ((float)$data->shipping_cost > 0 || (int)$data->shipping > 0): ?>
+    <tr style='border-collapse: collapse;'>
+        <td style="text-align: center;"></td>
+        <td style="text-align: center;"></td>
+        <td style="text-align: center;"></td>
+        <td style="text-align: center;"><b>ENVÍO</b></td>
+        <td style="text-align: center;"><?php echo $moneda.number_format((float)$data->shipping_cost, 2, '.', ',');?></td>
+    </tr>
+    <?php endif; ?>
     <tr style='border-collapse: collapse;'>
         <td style="text-align: center;"></td>
         <td style="text-align: center;"></td>

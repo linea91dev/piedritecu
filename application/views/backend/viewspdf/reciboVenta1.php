@@ -765,6 +765,18 @@ ini_set("memory_limit","500M");
                 </tr>
             </table>
             <br>
+            <?php if ((float)$data->shipping_cost > 0 || (int)$data->shipping > 0): ?>
+            <table cellpadding="0" cellspacing="0" style="font-family:poppins; border:0.5px solid #000; width: 100%;line-height: inherit;text-align: left;margin-bottom:8px;">
+                <tr>
+                    <td style="padding:5px;font-size: 11px; text-align:left;">
+                        COSTO DE ENVÍO
+                    </td>
+                    <td style="padding:5px;font-size: 11px; text-align:right;">
+                        <?php echo $moneda.number_format((float)$data->shipping_cost, 2, '.', ',');?>
+                    </td>
+                </tr>
+            </table>
+            <?php endif; ?>
             <table cellpadding="0" cellspacing="0" style="font-family:poppins; border:0.5px solid #000; width: 100%;line-height: inherit;text-align: left;">
                 <tr>
                     <td style="padding:5px;font-size: 11px; text-align:left;background:#f07e14;color:#fff;">
