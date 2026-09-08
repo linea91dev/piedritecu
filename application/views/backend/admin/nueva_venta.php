@@ -434,12 +434,18 @@ function clients(value) {
 function search() {
 
     var name = $('#name_pr').val();
+    var client_type = 2;
+    if (typeof mayorista !== 'undefined' && mayorista) client_type = 1;
+    else if (typeof cl_farma !== 'undefined' && cl_farma) client_type = 3;
+    else if (typeof cl_ferretero !== 'undefined' && cl_ferretero) client_type = 4;
+    else if ($('#prueba').length && $('#prueba').val()) client_type = parseInt($('#prueba').val(), 10) || 2;
 
     $.ajax({
         type: "POST",
         url: '<?php echo base_url();?>admin/search/productSale',
         data: {
             name: name,
+            client_type: client_type,
         },
         beforeSend: function() {
             $('#spinnerPr').addClass('spinner');

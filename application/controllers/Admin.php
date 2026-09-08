@@ -6670,6 +6670,10 @@ echo $table;
     if($param1 == 'productSale'){
         $name = $this->input->post('name');
         $branch_id = $this->session->userdata('branch_id');
+        $client_type = (int) $this->input->post('client_type');
+        if (!in_array($client_type, array(1, 2, 3, 4), true)) {
+            $client_type = 2;
+        }
     
         if($name != ''){
         $data = $this->db->query("SELECT * FROM `products` WHERE status ='1' AND ((name like '%$name%' OR code like '%$name%')) ORDER BY name ASC");
@@ -6696,6 +6700,17 @@ echo $table;
                     $stock_bodega = $this->crud_model->get_stock($row['products_id'], 0);
                     $stock = $stock_bodega;
                 }
+
+                if ($client_type == 1) {
+                    $precio_mostrar = $this->crud_model->last_price_buy_my($row['products_id']);
+                } elseif ($client_type == 3) {
+                    $precio_mostrar = $this->crud_model->last_price_buy_farma($row['products_id']);
+                } elseif ($client_type == 4) {
+                    $precio_mostrar = $this->crud_model->last_price_buy_ferretero($row['products_id']);
+                } else {
+                    $precio_mostrar = $this->crud_model->last_price_buy($row['products_id']);
+                }
+
                 $table.='
                 <tr>
                     <td>
@@ -6714,7 +6729,7 @@ echo $table;
                                 </div>
                                 <div class="ml-4">
                                     <div class="text-dark-75 font-weight-normal font-size-lg mb-0">
-                                        '.$row['name'].' - '.$row['code'].' - <b class="text-danger">Q.'.$this->crud_model->last_price_buy($row['products_id'], 0).' - <b class="text-primary">Q.'.$this->crud_model->last_price_buy_farma($row['products_id']).' - <b class="text-success">Q.'.$this->crud_model->last_price_buy_my($row['products_id']).'</b>
+                                        '.$row['name'].' - '.$row['code'].' - <b>Q.'.number_format((float) $precio_mostrar, 2, '.', ',').'</b>
                                     </div>
                                    
                                     <a href="javascript:void(0);" class="text-muted font-weight-bold text-hover-primary">Tienda:
