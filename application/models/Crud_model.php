@@ -11318,8 +11318,8 @@ function new_change()
         'status' => '1',
         'ID' =>$ID
         );
-        //$html = $this->load->view('backend/viewspdf/quotes.php',$data,TRUE); 
-        $html = $this->load->view('backend/viewspdf/reciboCotizacion.php',$data,TRUE); 
+        //$html = $this->load->view('backend/viewspdf/reciboCotizacion.php',$data,TRUE); 
+        $html = $this->load->view('backend/viewspdf/quotes.php',$data,TRUE); 
         $pdfFilePath = "Cotización-".date('d/m/Y H:i:s').".pdf";
         $this->load->library('M_pdf');
         $mpdf = new mPDF('utf-8','A4'); 
