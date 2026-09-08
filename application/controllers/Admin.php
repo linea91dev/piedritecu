@@ -4735,16 +4735,13 @@ class Admin extends CI_Controller
         $data = $this->db->get_where('products', array('products_id'=>$pro));
         $producto = $this->db->get_where('products',array('products_id'=>$pro))->row();
             if($producto->presentation == 'Caja'){
-                $total = $this->crud_model->get_stock($producto->id_prod_matriz, $this->session->userdata('branch_id'));
-                $stock_inventory = ($total/$producto->cnt_prod_matriz); 
                 $tot_bodega= $this->crud_model->get_stock($producto->id_prod_matriz, 0);
-                $stock_bodega = ($tot_bodega/$producto->cnt_prod_matriz);
+                $stock_bodega = ($producto->cnt_prod_matriz > 0) ? ($tot_bodega/$producto->cnt_prod_matriz) : 0;
             }else{
-                $stock_inventory  = $this->crud_model->get_stock($pro, $this->session->userdata('branch_id'));
                 $stock_bodega = $this->crud_model->get_stock($pro, 0);
             }
-        //$max_ = $this->crud_model->get_stock($pro,$this->session->userdata('branch_id'));
-        $max_ = ($stock_inventory+$stock_bodega);
+        // Máximo vendible según stock de bodega (despacho)
+        $max_ = $stock_bodega;
         foreach($data->result_array() as $row){
             $precio = $this->crud_model->last_price($pro, $this->session->userdata('branch_id'));
             $cost = $this->crud_model->last_cost($pro, $this->session->userdata('branch_id'));
@@ -6685,18 +6682,19 @@ echo $table;
             }
             $stock = '';
             foreach($data->result_array() as $row){
-                $stock = $this->crud_model->get_stock($row['products_id'], $branch_id);
-                //$stock = '1'; $stock_inventory = 0; $stock_bodega = 0;
+                $stock = 0; $stock_inventory = 0; $stock_bodega = 0;
                 $producto = $this->db->get_where('products',array('products_id'=>$row['products_id']))->row();
                 if($producto->presentation == 'Caja'){
                     $total = $this->crud_model->get_stock($producto->id_prod_matriz, $this->session->userdata('branch_id'));
-                    $stock_inventory = ($total/$producto->cnt_prod_matriz);
-                    $stock = $stock_inventory;
+                    $stock_inventory = ($producto->cnt_prod_matriz > 0) ? ($total/$producto->cnt_prod_matriz) : 0;
                     $tot_bodega= $this->crud_model->get_stock($producto->id_prod_matriz, 0);
-                    $stock_bodega = ($tot_bodega/$producto->cnt_prod_matriz);
+                    $stock_bodega = ($producto->cnt_prod_matriz > 0) ? ($tot_bodega/$producto->cnt_prod_matriz) : 0;
+                    // Venta valida stock de bodega
+                    $stock = $stock_bodega;
                 }else{
                     $stock_inventory  = $this->crud_model->get_stock($row['products_id'], $this->session->userdata('branch_id'));
                     $stock_bodega = $this->crud_model->get_stock($row['products_id'], 0);
+                    $stock = $stock_bodega;
                 }
                 $table.='
                 <tr>
@@ -6728,7 +6726,7 @@ echo $table;
                                         <span class="label label-lg font-weight-bold  label-light-info label-inline">'.($stock_inventory+$stock_bodega).'</span></a>
                                     
                                 </div>';
-                            if($stock == 0){ $table .= '<div class=" ml-3 alert alert-danger" role="alert">Producto sin Stock ir a<a href="'.base_url().'admin/traslados"  target="_blank"> traslado </a>  </div>';}
+                            if($stock == 0){ $table .= '<div class=" ml-3 alert alert-danger" role="alert">Producto sin stock en bodega</div>';}
                         $table.='</div>
                         </a>
                     </td>

@@ -3385,7 +3385,8 @@ class Crud_model extends CI_Model {
                 $amount2  = $amount[$i];
             }
             
-            $lotes = $this->db->order_by('lote_id','ASC')->get_where('lotes',array('id_producto'=>$id_produ,'branch_id'=>$branch_id,'existencia >'=>0))->result_array();
+            $lotes = $this->db->order_by('lote_id','ASC')->get_where('lotes',array('id_producto'=>$id_produ,'branch_id'=>0,'existencia >'=>0))->result_array();
+            $lote = !empty($lotes) ? $lotes[0] : array('code' => '');
             
       
                 
@@ -3403,11 +3404,12 @@ class Crud_model extends CI_Model {
                 }
                 
                 $dat2['date']          = date('Y-m-d');
-                $dat2['code']          = $lote['code'];
+                $dat2['code']          = isset($lote['code']) ? $lote['code'] : '';
                 $dat2['products_id']   = $id_produ;
                 $dat2['user_id']       = $this->session->userdata('login_user_id');
                 $dat2['type']          = 0;
-                $dat2['branch_id']     = $this->session->userdata('branch_id');
+                // Descuento de stock desde bodega; la venta sigue perteneciendo a la sucursal
+                $dat2['branch_id']     = 0;
                 $dat2['amount']        = $amount2;
                 $dat2['provider']      = $producto_indi->provider; 
                 $dat2['cost']          = $cost2;
@@ -4400,11 +4402,10 @@ class Crud_model extends CI_Model {
     {
         $name = $this->db->get_where('products',array('products_id'=>$product_id))->row()->name;
         $alert = $this->db->get_where('products',array('products_id'=>$product_id))->row()->alert;
-        $stock_inventory = $this->get_stock($product_id, $this->session->userdata('branch_id'));
         $stock_bodega = $this->get_stock($product_id, 0);
 
-        if (($stock_inventory + $stock_bodega) <= $alert && ($stock_inventory + $stock_bodega) > 0) {
-            $message = 'Vendió el producto: '.$name.', y cambio a estado de Alerta';
+        if ($stock_bodega <= $alert && $stock_bodega > 0) {
+            $message = 'Vendió el producto: '.$name.', y cambio a estado de Alerta en bodega';
             $this->insert_notification($message, base64_encode('admin/producto_detalle/'.$product_id), 'alertas_productos', 'Alerta');
         }
     }
@@ -12418,16 +12419,13 @@ function new_change()
             $ex[0];
             $ex[1];
             $producto = $this->db->get_where('products',array('products_id'=>$ex[1]))->row();
+                // Ventas despachan desde bodega (branch_id = 0)
                 if($producto->presentation == 'Caja'){
-                    $total = $this->crud_model->get_stock($producto->id_prod_matriz, $this->session->userdata('branch_id'));
-                    $stock_inventory = ($total/$producto->cnt_prod_matriz); 
-                    //$tot_bodega= $this->crud_model->get_stock($producto->id_prod_matriz, 0);
-                    //$stock_bodega = ($tot_bodega/$producto->cnt_prod_matriz);
+                    $total = $this->crud_model->get_stock($producto->id_prod_matriz, 0);
+                    $stock_inventory = ($producto->cnt_prod_matriz > 0) ? ($total/$producto->cnt_prod_matriz) : 0;
                 }else{
-                    $stock_inventory  = $this->crud_model->get_stock($ex[1], $this->session->userdata('branch_id'));
-                    //$stock_bodega = $this->crud_model->get_stock($row->products_id, 0);
+                    $stock_inventory  = $this->crud_model->get_stock($ex[1], 0);
                 }
-           //$query = $this->get_stock($ex[1],$this->session->userdata('branch_id'));
            if ($ex[0] <= $stock_inventory) 
            {
                return 'success'; 
