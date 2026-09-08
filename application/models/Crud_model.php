@@ -5190,6 +5190,7 @@ function new_change()
         $data['name']      = $this->input->post('name');
         $data['last_name'] = $this->input->post('last_name');
         $data['phone']     = $this->input->post('phone');
+        $data['telefono']  = trim((string) $this->input->post('telefono'));
         $data['type']      = $this->input->post('type');
         $data['limite']    = $this->input->post('limite');
         $dias_credito = $this->input->post('dias_credito');
@@ -5214,6 +5215,7 @@ function new_change()
         $data['name']      = $this->input->post('name');
         $data['last_name'] = $this->input->post('last_name');
         $data['phone']     = $this->input->post('phone');
+        $data['telefono']  = trim((string) $this->input->post('telefono'));
         $data['type']      = $this->input->post('type');
         $data['limite']    = $this->input->post('limite');
         $dias_credito = $this->input->post('dias_credito');

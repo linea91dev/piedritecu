@@ -35,10 +35,26 @@
         </div>
         <div class="col-sm-6">
             <div class="form-group">
-                <label>Celular o WhatsApp</label>
+                <label>Celular o WhatsApp <span class="text-danger">*</span></label>
                 <div class="input-group">
-                    <input type="number" class="form-control" aria-label="Text input with checkbox" name='phone'
-                        pattern="[0-9]{8}" value='<?php echo $row['phone'];?>' />
+                    <input type="tel" class="form-control" name="phone"
+                        oninput="this.value=this.value.replace(/[^0-9]/g, '').slice(0,8)"
+                        minlength="8" maxlength="8" pattern="[0-9]{8}"
+                        value="<?php echo htmlspecialchars($row['phone'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                        placeholder="55555555" required />
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6">
+            <div class="form-group">
+                <label>Teléfono</label>
+                <div class="input-group">
+                    <input type="tel" class="form-control" name="telefono"
+                        oninput="this.value=this.value.replace(/[^0-9]/g, '').slice(0,8)"
+                        maxlength="8" pattern="[0-9]{8}"
+                        value="<?php echo htmlspecialchars($row['telefono'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                        placeholder="22222222" />
                 </div>
             </div>
         </div>
