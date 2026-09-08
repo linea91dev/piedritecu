@@ -1,4 +1,4 @@
-<?php  $data = $this->db->get_where('client',array('status'=>1)); $moneda = $this->crud_model->get_info("moneda");?>
+<?php  $data = $this->db->order_by('status', 'DESC')->order_by('name', 'ASC')->get('client'); $moneda = $this->crud_model->get_info("moneda");?>
 <div class="container-fluid">
     <div class="row">
         <div class="col-xl-12">
@@ -147,7 +147,7 @@
                                                 <?php echo ($row['limite'] == 0)? 'Sin Limite': $moneda.number_format($row['limite'],2,'.',',') ;?></b></span>
                                     </td>
                                     <td class='text-center'>
-                                        <span class="label label-lg font-weight-bold label-light-<?php echo ($row['status']==1) ? 'success':'danger' ;?> label-inline"><?php echo ($row['status']==1) ? 'Activo':'Inactivo' ;?></span>
+                                        <span class="label label-lg font-weight-bold label-light-<?php echo ($row['status']==1) ? 'success':'danger' ;?> label-inline"><?php echo ($row['status']==1) ? 'Activo':'Desactivado' ;?></span>
                                     </td>
                                     <td>
                                         <div class="d-flex flex-shrink-0">
