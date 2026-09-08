@@ -96,6 +96,7 @@
                                     <th>#</th>
                                     <th>Código</th>
                                     <th>Fecha</th>
+                                    <th>Origen</th>
                                     <th>Responsable</th>
                                     <th>Total en pérdida</th>
                                     <th>Acciones</th>

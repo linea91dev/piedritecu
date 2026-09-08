@@ -3,7 +3,7 @@
 <html>
     <head> <meta charset="gb18030"> </head>
     <?php $branch_id = $this->session->userdata("branch_id"); $total = 0; $n=1; $moneda = $this->crud_model->get_info("moneda");
-        $info = $this->db->query("SELECT * FROM losse_returns WHERE branch_id = '$branch_id' AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final') ORDER BY datetime DESC");?>
+        $info = $this->db->query("SELECT * FROM losse_returns WHERE (branch_id = '$branch_id' OR branch_id = 0) AND status = 1 AND concept != 'Devolución' AND (concept = 'Pérdida' OR type = 2) AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final') ORDER BY datetime DESC");?>
     <body>
         <header style="text-align: center; margin-top: -25px !important;">
             <img src="<?php echo base_url().'uploads/img/'.$this->crud_model->get_info('logo');?>" style="width: 75px; height: auto; border-radius: 15px;" />

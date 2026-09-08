@@ -7913,73 +7913,36 @@ function new_change()
                 $amount2  = $amount[$i];
             }
             
-            $lotes = $this->db->order_by('lote_id','ASC')->get_where('lotes',array('id_producto'=>$id_produ,'branch_id'=>$branch_id,'existencia >'=>0))->result_array();
-           /* 
-            foreach ($lotes as $lote) {
-                # code...
-                $stock = $lote['existencia'];
-                $dat2['price']       = $sub[$i];
-
-                if ($amount2 > 0) {
-                    if($lote['existencia'] > $amount2) {*/
-                        $dat2['date']          = date('Y-m-d');
-                        $dat2['code']          = $lote['code'];
-                        $dat2['products_id']   = $id_produ;
-                        $dat2['user_id']       = $this->session->userdata('login_user_id');
-                        $dat2['type']          = 4;
-                        $dat2['branch_id']     = $this->session->userdata('branch_id');
-                        $dat2['amount']        = $amount2;
-                        $dat2['provider']      = $producto_indi->provider; 
-                        $dat2['cost']          = $cost2;
-                        $dat2['description']   = "Pérdida";
-                        $dat2['activity_ref']  = $this->input->post('code');
-                        $dat2['products_id_2'] = $products_id_2;
-                        $dat2['iva']           = $iva;
-                    
-                        $this->db->insert('product_details', $dat2);  
-                        
-                        /*$new_existencia = $lote['existencia'] - $amount2;
-                        $this->db->where('lote_id', $lote['lote_id']);
-                        $this->db->update('lotes',array('existencia'=>$new_existencia));
-                        break;
-                    } else {
-                        $dat2['date']          = date('Y-m-d');
-                        $dat2['code']          = $lote['code'];
-                        $dat2['products_id']   = $id_produ;
-                        $dat2['user_id']       = $this->session->userdata('login_user_id');
-                        $dat2['type']          = 4;
-                        $dat2['branch_id']     = $this->session->userdata('branch_id');
-                        $dat2['amount']        = $lote['existencia'];
-                        $dat2['provider']      = $producto_indi->provider;
-                        $dat2['cost']          = $cost2;
-                        $dat2['description']   = "Pérdida";
-                        $dat2['activity_ref']  = $this->input->post('code');
-                        $dat2['products_id_2'] = $products_id_2;
-                        $dat2['iva']           = $iva;
-                        $this->db->insert('product_details', $dat2);  
-                        
-                        $amount2 = $amount2 - $lote['existencia'];
-                        
-                        $new_existencia = 0;
-                        $this->db->where('lote_id', $lote['lote_id']);
-                        $this->db->update('lotes',array('existencia'=>$new_existencia));
-                    }
-                }
-            }*/
+            $dat2['date']          = date('Y-m-d');
+            $dat2['code']          = $this->input->post('code');
+            $dat2['products_id']   = $id_produ;
+            $dat2['user_id']       = $this->session->userdata('login_user_id');
+            $dat2['type']          = 4;
+            $dat2['branch_id']     = $branch_id;
+            $dat2['amount']        = $amount2;
+            $dat2['provider']      = $producto_indi->provider; 
+            $dat2['cost']          = $cost2;
+            $dat2['description']   = "Pérdida";
+            $dat2['activity_ref']  = $this->input->post('code');
+            $dat2['products_id_2'] = $products_id_2;
+            $dat2['iva']           = $iva;
+            $this->db->insert('product_details', $dat2);
             
             $this->alerta_stock($id_produ);
 
             $name = $producto_indi->name;
-            $message = 'Registro como perdida '.$name.', ID: '.$products[$i].', Código: '.$code;
+            $code_loss = $this->input->post('code');
+            $message = 'Registro como perdida '.$name.', ID: '.$product_id[$i].', Código: '.$code_loss;
             $this->insert_binnacle($message);
             $this->insert_notification($message, base64_encode('admin/inventario/'), 'inventario', 'Inventario_perdida');
         }
         
         $data['code']        = $this->input->post('code');
-        $data['concept']     = $this->input->post('concept');
+        $data['concept']     = 'Pérdida';
+        $data['origin']      = trim($this->input->post('concept'));
         $data['branch_id']   = $branch_id;
         $data['datetime']    = $datetime;
-        $data['date']        = date("Y-m-d", strtotime($this->input->post('date')));
+        $data['date']        = $this->input->post('date') ? date("Y-m-d", strtotime($this->input->post('date'))) : date('Y-m-d');
         $data['week']        = date('W');
         $data['month']       = date('m');
         $data['year']        = date('Y');
@@ -11836,13 +11799,12 @@ function new_change()
     
     function get_losses_products($initial, $final) {
         $branch_id = $this->session->userdata('branch_id');
-        return $this->db->query("SELECT * FROM losse_returns WHERE branch_id = '$branch_id' AND status = 1 AND concept = 'Pérdida' AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final')");
-        // return $this->db->get_where("losse_returns", array('branch_id'=>$branch_id, 'status'=>1, 'concept'=>"Pérdida"));
+        return $this->db->query("SELECT * FROM losse_returns WHERE (branch_id = '$branch_id' OR branch_id = 0) AND status = 1 AND concept != 'Devolución' AND (concept = 'Pérdida' OR type = 2) AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final')");
     }
     
     function get_losses_total($initial, $final) {
         $branch_id = $this->session->userdata('branch_id');
-        return $this->db->query("SELECT SUM(loss) AS total FROM losse_returns WHERE branch_id = '$branch_id' AND status = 1 AND concept = 'Pérdida' AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final')")->row()->total;
+        return $this->db->query("SELECT SUM(loss) AS total FROM losse_returns WHERE (branch_id = '$branch_id' OR branch_id = 0) AND status = 1 AND concept != 'Devolución' AND (concept = 'Pérdida' OR type = 2) AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final')")->row()->total;
     }
     
     function get_expired_products() {

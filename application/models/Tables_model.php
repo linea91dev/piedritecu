@@ -1956,6 +1956,10 @@ class Tables_model extends CI_Model
             $sub_array[] = $n++;  
             $sub_array[] = $row->code;
             $sub_array[] = date("d/m/Y h:i a", strtotime($row->datetime));
+            $destino = ((int) $row->branch_id === 0)
+                ? '<span class="label label-lg font-weight-bold label-light-warning label-inline">Bodega</span>'
+                : '<span class="label label-lg font-weight-bold label-light-info label-inline">Tienda</span>';
+            $sub_array[] = $destino;
             $sub_array[] = $this->crud_model->getName("admin", $row->responsable);
             $sub_array[] = $moneda.number_format($row->loss,2,'.',',');
             $sub_array[] = '
@@ -2028,9 +2032,17 @@ class Tables_model extends CI_Model
         $branch_id = $this->session->userdata('branch_id');
         $this->db->select('*'); 
         $this->db->from('losse_returns');
+        $this->db->group_start();
         $this->db->where('branch_id', $branch_id);
+        $this->db->or_where('branch_id', 0);
+        $this->db->group_end();
         $this->db->where('status', 1);
+        // type=2 = registro masivo (concepto libre); concept Pérdida = desde producto
+        $this->db->group_start();
         $this->db->where('concept', 'Pérdida');
+        $this->db->or_where('type', 2);
+        $this->db->group_end();
+        $this->db->where('concept !=', 'Devolución');
         $this->db->where("DATE(datetime) >= DATE('$param1')", NULL, FALSE);
         $this->db->where("DATE(datetime) <= DATE('$param2')", NULL, FALSE);
         
@@ -2057,9 +2069,16 @@ class Tables_model extends CI_Model
         $branch_id = $this->session->userdata('branch_id');
         $this->db->select('*'); 
         $this->db->from('losse_returns');
+        $this->db->group_start();
         $this->db->where('branch_id', $branch_id);
+        $this->db->or_where('branch_id', 0);
+        $this->db->group_end();
         $this->db->where('status', 1);
+        $this->db->group_start();
         $this->db->where('concept', 'Pérdida');
+        $this->db->or_where('type', 2);
+        $this->db->group_end();
+        $this->db->where('concept !=', 'Devolución');
         $this->db->where("DATE(datetime) >= DATE('$param1')", NULL, FALSE);
         $this->db->where("DATE(datetime) <= DATE('$param2')", NULL, FALSE);
         return $this->db->count_all_results();  
