@@ -3355,6 +3355,7 @@ class Crud_model extends CI_Model {
         $price_farma = $this->input->post('price_farma');
         $price_ferretero = $this->input->post('price_ferretero');
         $discount = $this->input->post('discount');
+        $flete    = $this->input->post('flete');
         $sub      = $this->input->post('sub');
         $sub_my   = $this->input->post('sub_my');
         $sub_farma   = $this->input->post('sub_farma');
@@ -3371,7 +3372,8 @@ class Crud_model extends CI_Model {
             $iva = 0;
             if (!$producto_indi->iva) $iva = 0;
             else $iva = 1;
-            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0), 'iva'=>$iva);
+            $flete_i = (isset($flete[$i]) && $flete[$i] !== '') ? $flete[$i] : 0;
+            $new_producto = array('product'=>$products[$i], 'amount'=>$amount[$i], 'price'=>$price[$i], 'cost'=>$cost[$i], 'price_my'=>$price_my[$i], 'price_farma'=>$price_farma[$i], 'price_ferretero'=>(isset($price_ferretero[$i])?$price_ferretero[$i]:0), 'discount'=>$discount[$i], 'flete'=>$flete_i, 'sub'=>$sub[$i], 'sub_my'=>$sub_my[$i], 'sub_farma'=>$sub_farma[$i], 'sub_ferretero'=>(isset($sub_ferretero[$i])?$sub_ferretero[$i]:0), 'iva'=>$iva);
             array_push($producto, $new_producto);
             
             $products_id_2 = 0; $cost2 = $cost[$i];

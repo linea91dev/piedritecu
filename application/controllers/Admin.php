@@ -4768,18 +4768,25 @@ class Admin extends CI_Controller
                 <input min="'.$min_cost_my.'" class="form-control" type="number" style="width:110px" step="any" id="price-'.$pro.'" name="price[]" value="'.$precio.'" onChange="sum('.$pro.','.$pro.',2)" onInput="sum('.$pro.','.$pro.',2)" autofocus>
                 <input type="hidden" id="precioProducto-'.$pro.'" value="'.$cost.'">
                 <input type="hidden" id="prPrice-'.$pro.'" value="'.$precio.'">
+                <input type="hidden" id="price_base-'.$pro.'" value="'.$precio.'">
             </td>
             <td class="client-farma">
-                <input min="'.$min_cost_farma.'" class="form-control" type="number" style="width:110px" step="any" id="price_farma-'.$pro.'" name="price_farma[]" value="'.$precio_farma.'"  onChange="sum('.$pro.','.$pro.',4)" onInput="sum('.$pro.','.$pro.',2)" autofocus>
+                <input min="'.$min_cost_farma.'" class="form-control" type="number" style="width:110px" step="any" id="price_farma-'.$pro.'" name="price_farma[]" value="'.$precio_farma.'"  onChange="sum('.$pro.','.$pro.',4)" onInput="sum('.$pro.','.$pro.',4)" autofocus>
                 <input type="hidden" id="prPrice_farma-'.$pro.'" value="'.$precio_farma.'">
+                <input type="hidden" id="price_base_farma-'.$pro.'" value="'.$precio_farma.'">
             </td>
             <td class="client-ferretero">
                 <input min="'.$min_cost_ferretero.'" class="form-control" type="number" style="width:110px" step="any" id="price_ferretero-'.$pro.'" name="price_ferretero[]" value="'.$precio_ferretero.'"  onChange="sum('.$pro.','.$pro.',5)" onInput="sum('.$pro.','.$pro.',5)" autofocus>
                 <input type="hidden" id="prPrice_ferretero-'.$pro.'" value="'.$precio_ferretero.'">
+                <input type="hidden" id="price_base_ferretero-'.$pro.'" value="'.$precio_ferretero.'">
             </td>
             <td class="client-my">
-                <input min="'.$min_cost_my.'" class="form-control" type="number" style="width:110px" step="any" id="price_my-'.$pro.'" name="price_my[]" value="'.$precio_my.'"  onChange="sum('.$pro.','.$pro.',2)" onInput="sum('.$pro.','.$pro.',2)"  autofocus>
+                <input min="'.$min_cost_my.'" class="form-control" type="number" style="width:110px" step="any" id="price_my-'.$pro.'" name="price_my[]" value="'.$precio_my.'"  onChange="sum('.$pro.','.$pro.',6)" onInput="sum('.$pro.','.$pro.',6)"  autofocus>
                 <input type="hidden" id="prPrice_my-'.$pro.'" value="'.$precio_my.'">
+                <input type="hidden" id="price_base_my-'.$pro.'" value="'.$precio_my.'">
+            </td>
+            <td>
+                <input min="0" class="form-control" type="number" style="width:90px" step="any" id="flete-'.$pro.'" name="flete[]" value="0" onChange="sum('.$pro.','.$pro.')" onInput="sum('.$pro.','.$pro.')">
             </td>
             <td>
                 <input min="0" max="100" class="form-control discount" type="number" style="width:70px" step="any" id="discount-'.$pro.'" name="discount[]" value="0"  onChange="sum('.$pro.','.$pro.',3)" onInput="sum('.$pro.','.$pro.',3)">

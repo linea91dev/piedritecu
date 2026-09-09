@@ -69,6 +69,7 @@
                                         <th class="client-farma">Precio Farmacia</th>
                                         <th class="client-ferretero">Precio Ferretero</th>
                                         <th class="client-my">Precio Mayoristas</th>
+                                        <th>Flete</th>
                                         <th>Descuento <small>(%)</small></th>
                                         <th class="client-mn">Subtotal</th>
                                         <th class="client-farma">Subtotal farmacia</th>
@@ -781,16 +782,28 @@ function verificarCodigo () {
 function sum(id, i, v) {
     $('#metodo').val('');
 
-    var cantidad = $('#amount-' + i).val();
-    var precio = $('#price-' + i).val();
-    var precio_my = $('#price_my-' + i).val();
-    var precio_farma = $('#price_farma-' + i).val();
-    var precio_ferretero = $('#price_ferretero-' + i).val() || 0;
-    var descuento = $('#discount-' + i).val();
-    var prPrice = $('#prPrice-' + i).val();
-    //alert(precio_farma);
-    
-    $('#mensaje-' + i).queue(function(n) 
+    var cantidad = parseFloat($('#amount-' + i).val()) || 0;
+    if (cantidad <= 0) cantidad = 1;
+
+    var descuento = parseFloat($('#discount-' + i).val()) || 0;
+    var prPrice = parseFloat($('#prPrice-' + i).val()) || 0;
+    var prPrice_farma = parseFloat($('#prPrice_farma-' + i).val()) || 0;
+    var prPrice_ferretero = parseFloat($('#prPrice_ferretero-' + i).val()) || 0;
+    var prPrice_my = parseFloat($('#prPrice_my-' + i).val()) || 0;
+    var flete = parseFloat($('#flete-' + i).val()) || 0;
+    if (flete < 0) flete = 0;
+    var fleteUnit = flete / cantidad;
+
+    var precio_base = parseFloat($('#price_base-' + i).val());
+    var precio_base_farma = parseFloat($('#price_base_farma-' + i).val());
+    var precio_base_ferretero = parseFloat($('#price_base_ferretero-' + i).val());
+    var precio_base_my = parseFloat($('#price_base_my-' + i).val());
+    if (isNaN(precio_base)) precio_base = prPrice;
+    if (isNaN(precio_base_farma)) precio_base_farma = prPrice_farma;
+    if (isNaN(precio_base_ferretero)) precio_base_ferretero = prPrice_ferretero;
+    if (isNaN(precio_base_my)) precio_base_my = prPrice_my;
+
+    $('#mensaje-' + i).queue(function(n)
     {
         $.ajax({
               type: "POST",
@@ -798,19 +811,14 @@ function sum(id, i, v) {
               data: "c="+cantidad+'|'+id,
               dataType: "html",
               error: function(){
-                    //alert("¡Error!");
               },
               success: function(data)
-              { 
+              {
                 if (data == "success")
-                {            
-                    // $('#mensaje-' + i).hide(500);
+                {
                     $('#submit2').removeAttr('disabled');
-                    //console.log(data);
                 }
                 else {
-                    
-                    //console.log(data);
                     $('#mensaje-' + i).show(500);
                     texto = '<td><small class="text-danger" id="ms-descuento">Error:  Cantidad no disponible en stock</small></td>';
                     $('#mensaje-' + i).html(texto);
@@ -818,70 +826,90 @@ function sum(id, i, v) {
                 }
                 n();
               }
-          });                           
+          });
      });
-    
-    
-    if(v == 2) 
+
+    // v=2: usuario editó precio público (precio final visible)
+    if(v == 2)
     {
-        if (parseFloat(precio) <= parseFloat(prPrice) && !mayorista) 
+        var precio_final_edit = parseFloat($('#price-' + i).val()) || 0;
+        precio_base = precio_final_edit - fleteUnit;
+        if (precio_base < 0) precio_base = 0;
+        $('#price_base-' + i).val(precio_base.toFixed(2));
+
+        if (precio_base <= prPrice && !mayorista)
         {
-            //alert('minorista');
-            var diferencia      = parseFloat(prPrice) - parseFloat(precio);
-            var newPorcentaje   = (diferencia / parseFloat(prPrice)) * 100;
+            var diferencia      = prPrice - precio_base;
+            var newPorcentaje   = (prPrice > 0) ? (diferencia / prPrice) * 100 : 0;
             $('#discount-' + i).val(newPorcentaje.toFixed(2));
-            descuento = newPorcentaje.toFixed(2);
+            descuento = newPorcentaje;
         } else {
             $("#discount-"+i).val(0);
+            descuento = 0;
         }
     }
 
-    if(v == 3) 
+    // v=3: usuario editó descuento -> recalcular base desde catálogo
+    if(v == 3)
     {
-        if (parseFloat(descuento) >= 0 && !mayorista) 
+        if (descuento >= 0 && !mayorista)
         {
-            var des = parseFloat(prPrice) - (parseFloat(descuento) * parseFloat(prPrice)) / 100;
-            $('#price-' + i).val(des.toFixed(2));
-            precio = des.toFixed(2)
+            precio_base = prPrice - (descuento * prPrice) / 100;
+            if (precio_base < 0) precio_base = 0;
+            $('#price_base-' + i).val(precio_base.toFixed(2));
         }
     }
 
+    // v=4: precio farmacia editado
+    if(v == 4)
+    {
+        var precio_final_farma_edit = parseFloat($('#price_farma-' + i).val()) || 0;
+        precio_base_farma = precio_final_farma_edit - fleteUnit;
+        if (precio_base_farma < 0) precio_base_farma = 0;
+        $('#price_base_farma-' + i).val(precio_base_farma.toFixed(2));
+    }
+
+    // v=5: precio ferretero editado
+    if(v == 5)
+    {
+        var precio_final_ferretero_edit = parseFloat($('#price_ferretero-' + i).val()) || 0;
+        precio_base_ferretero = precio_final_ferretero_edit - fleteUnit;
+        if (precio_base_ferretero < 0) precio_base_ferretero = 0;
+        $('#price_base_ferretero-' + i).val(precio_base_ferretero.toFixed(2));
+    }
+
+    // v=6: precio mayorista editado
+    if(v == 6)
+    {
+        var precio_final_my_edit = parseFloat($('#price_my-' + i).val()) || 0;
+        precio_base_my = precio_final_my_edit - fleteUnit;
+        if (precio_base_my < 0) precio_base_my = 0;
+        $('#price_base_my-' + i).val(precio_base_my.toFixed(2));
+    }
+
+    // Precio unitario final = base + (flete / cantidad)
+    var precio = precio_base + fleteUnit;
+    var precio_farma = precio_base_farma + fleteUnit;
+    var precio_ferretero = precio_base_ferretero + fleteUnit;
+    var precio_my = precio_base_my + fleteUnit;
+
+    $('#price-' + i).val(precio.toFixed(2));
+    $('#price_farma-' + i).val(precio_farma.toFixed(2));
+    $('#price_ferretero-' + i).val(precio_ferretero.toFixed(2));
+    $('#price_my-' + i).val(precio_my.toFixed(2));
 
     var delivery = 0;
     if ($("#delivery_cost").val() != "")
         delivery = parseFloat($("#delivery_cost").val());
 
-    var mul             = (parseFloat(cantidad) * parseFloat(precio));
-    var des             = mul * (descuento / 100);
-    var total           = mul;
+    var total = cantidad * precio;
     var precio_producto = $('#precioProducto-' + i).val();
 
-    var pu = parseFloat(precio) - (parseFloat(precio) * (descuento / 100));
-    
-    var descuentos = $('#descuentos').val();
-    
-    /* var sumaDescuento = 0;
-    $('.discount').each(function() {
-        sumaDescuento += parseFloat($(this).val());
-    });
-
-    if (sumaDescuento > 0 && descuentos == 0) {
-        // $('#codigoAuth').show(500);
-        $('.nueva_venta').attr('hidden', true);
-    } else {
-        $('.nueva_venta').removeAttr('hidden');
-    } */
-    
     verificarCodigo();
-    // console.log("Total: ", total, "Precio producto:", Number(precio_producto), "Farma:", Number(precio_farma), "Mayorista:", Number(precio_my), "Val may:", mayorista, "Cl farma:", cl_farma);
-    if (total < precio_producto && !mayorista && cl_farma==false && cl_ferretero==false) 
+
+    if (total < precio_producto && !mayorista && cl_farma==false && cl_ferretero==false)
     {
         $('#mensaje-' + i).show(500);
-        var COSTO = parseFloat(precio_producto);
-        var PRECIO = parseFloat(prPrice);
-
-        var TOTAL = ((PRECIO - COSTO) / COSTO) * 100;
-        
         var ms =`<td><small class="text-danger" id="ms-descuento"> El costo del producto es  <b>${moneda}${precio_producto}</b> y el descuento es <b>${moneda}${descuento}%</b> el cual te dará una ganancia negativa </small></td>`;
         $('#mensaje-' + i).html(ms);
     } else if (Number(precio_farma) < Number(precio_producto) && cl_farma) {
@@ -901,34 +929,24 @@ function sum(id, i, v) {
         $('#mensaje-' + i).hide(500);
     }
 
-
     $('#sub-' + i).html(moneda + total.toFixed(2));
     $('#subt-' + i).val(total.toFixed(2));
 
-    var mul_my = (parseFloat(cantidad) * parseFloat(precio_my));
-    var des_my = mul_my * (descuento / 100);
-    var total_my = mul_my - des_my;
-    
-    var mul_farma = (parseFloat(cantidad) * parseFloat(precio_farma));
-    var des_farma = mul_farma * (descuento / 100);
-    var total_farma = mul_farma - des_farma;
-
-    var mul_ferretero = (parseFloat(cantidad) * parseFloat(precio_ferretero));
-    var des_ferretero = mul_ferretero * (descuento / 100);
-    var total_ferretero = mul_ferretero - des_ferretero;
+    var total_my = cantidad * precio_my;
+    var total_farma = cantidad * precio_farma;
+    var total_ferretero = cantidad * precio_ferretero;
 
     $('#sub_my-' + i).html(moneda + ' ' + total_my.toFixed(2));
     $('#subt_my-' + i).val(total_my.toFixed(2));
-    
+
     $('#sub_farma-' + i).html(moneda + ' ' + total_farma.toFixed(2));
     $('#subt_farma-' + i).val(total_farma.toFixed(2));
 
     $('#sub_ferretero-' + i).html(moneda + ' ' + total_ferretero.toFixed(2));
     $('#subt_ferretero-' + i).val(total_ferretero.toFixed(2));
 
-    if (!mayorista && cl_farma==false && cl_ferretero==false) 
+    if (!mayorista && cl_farma==false && cl_ferretero==false)
     {
-        //alert('Entro a minorista');
         var suma = 0;
         $('.total').each(function() {
             suma += parseFloat($(this).val());
@@ -940,9 +958,8 @@ function sum(id, i, v) {
         $('#ttl').val(total.toFixed(2));
         $('#pago').val(total.toFixed(2));
     }
-    else if(cl_farma) 
+    else if(cl_farma)
     {
-        //alert('Entro a farma');
         var suma = 0;
         $('.total_farma').each(function() {
             suma += parseFloat($(this).val());
@@ -967,9 +984,8 @@ function sum(id, i, v) {
         $('#ttl').val(total.toFixed(2));
         $('#pago').val(total.toFixed(2));
     }
-    else 
+    else
     {
-        //alert('Entro a mayorista');
         var suma = 0;
         $('.total_my').each(function() {
             suma += parseFloat($(this).val());
@@ -984,11 +1000,11 @@ function sum(id, i, v) {
     cambio();
 
 
-    if (total == 0) 
+    if (total == 0)
     {
         $(".nueva_venta").hide(500);
-    } 
-    else 
+    }
+    else
     {
         $(".nueva_venta").show(500);
         $('#list_products').show(500);
@@ -996,6 +1012,7 @@ function sum(id, i, v) {
     }
 
 }
+
 </script>
 
 <script>
