@@ -81,6 +81,20 @@
                                                 <?php echo $this->db->get_where('provider', array('provider_id'=>$datoss['provider']))->row()->name;?>
                                             </small></b>
                                         </p>
+                                        <?php
+                                            $lugar_id = !empty($datoss['location']) ? $datoss['location'] : $datoss['destiny'];
+                                            if ($lugar_id === '0' || $lugar_id === 0) {
+                                                $lugar_entrega = 'Bodega';
+                                            } else {
+                                                $branch_row = $this->db->get_where('branch', array('branch_id' => $lugar_id))->row();
+                                                $lugar_entrega = $branch_row ? $branch_row->name : 'No definido';
+                                            }
+                                        ?>
+                                        <p style="font-size: 12px;">Lugar de entrega:
+                                            <b><small style="font-weight:bold; text-transform:uppercase">
+                                                <?php echo $lugar_entrega;?>
+                                            </small></b>
+                                        </p>
                                     </td>
                                 </tr>
                             </table>
@@ -91,6 +105,9 @@
                 <table cellpadding="0" cellspacing="0"
                     style="border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;width: 100%;line-height: inherit;">
                     <tr>
+                        <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: left;">
+                            Código
+                        </td>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: left;">
                             Producto
                         </td>
@@ -114,34 +131,68 @@
                         foreach($prods as $pro):
                         $pr = $this->db->get_where('products',array('products_id'=>$pro['product']))->row();?>
                     <tr>
-                        <td style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;padding-top:15px;font-size: 12px;">
+                        <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;font-size: 12px; text-align:center;">
+                            <?php echo isset($pr->code) ? $pr->code : '-';?>
+                        </td>
+                        <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;font-size: 12px;">
                             <?php echo $pr->name;?>
                         </td>
-                        <td style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
+                        <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; font-size: 12px; text-align:center;">
                             <?php if($pro['expiration'] != '' || $pro['expiration'] != null){
                             $Fecha_Exp = date("Y-m-d", strtotime($pro['expiration'])); $Exp_Fecha = strftime("%d de %B de %Y", strtotime($Fecha_Exp));
                             echo $Exp_Fecha; }
                             else{ echo 'No definida';
                             }?>
                         </td>
-                        <td style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
+                        <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; font-size: 12px; text-align:center;">
                             <?php echo $pro['amount']; ?>
                         </td>
-                        <td style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
+                        <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; font-size: 12px; text-align:center;">
                             <?php echo $moneda.number_format($pro['price_buy'],2,'.',',');?>
                         </td>
-                        <td style="padding:15px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; padding-top:15px;font-size: 15px; text-align:center;">
+                        <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; font-size: 12px; text-align:center;">
                             <?php echo ($pro['discount'] == "") ? number_format(0,2,'.',',') : number_format($pro['discount'],2,'.',',') ; echo '%';?>
                         </td>
-                        <td style="padding:15px;font-size: 15px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;text-align:center">
+                        <td style="padding:10px;font-size: 12px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;text-align:center">
                             <?php echo $moneda.number_format($pro['sub'],2,'.',',') ;?>
                         </td>
                     </tr>
                     <?php endforeach;?>
                     <tr>
-                        <td colspan="6" 
+                        <td colspan="7" 
                         style="padding:15px;font-size: 20px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;text-align:right">
                             <b>Total:</b> <span style="border-bottom: 1px double;"><?php echo $moneda.number_format($datoss['total'],2,'.',',');?></span>
+                        </td>
+                    </tr>
+                </table>
+
+                <br><br>
+                <table cellpadding="0" cellspacing="0" style="width: 100%; border: 1px solid #000;">
+                    <tr>
+                        <td style="background:#eee; padding:6px 10px; font-size:12px; font-weight:bold; border-bottom:1px solid #000;">
+                            Observaciones
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="height:70px; padding:8px; font-size:11px; vertical-align:top;">
+                            <?php echo !empty($datoss['details']) ? nl2br(htmlspecialchars($datoss['details'])) : '&nbsp;';?>
+                        </td>
+                    </tr>
+                </table>
+
+                <br><br>
+                <table cellpadding="0" cellspacing="0" style="width: 100%;">
+                    <tr>
+                        <td style="width:48%; text-align:center; vertical-align:bottom; padding:10px;">
+                            <div style="border-top:1px solid #000; margin:60px 20px 8px 20px;"></div>
+                            <p style="font-size:11px; margin:0; font-weight:bold;">Departamento de Compras</p>
+                            <p style="font-size:10px; margin:2px 0 0 0;">Firma y nombre</p>
+                        </td>
+                        <td style="width:4%;"></td>
+                        <td style="width:48%; text-align:center; vertical-align:bottom; padding:10px;">
+                            <div style="border-top:1px solid #000; margin:60px 20px 8px 20px;"></div>
+                            <p style="font-size:11px; margin:0; font-weight:bold;">Gerente General y/o Administrativo</p>
+                            <p style="font-size:10px; margin:2px 0 0 0;">Firma y nombre</p>
                         </td>
                     </tr>
                 </table>
