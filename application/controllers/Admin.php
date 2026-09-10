@@ -8773,9 +8773,19 @@ echo $table;
 }
 
 if($param1 == 'search_productos'){
-    $provider = $this->input->post('provider');
+    $provider = (int) $this->input->post('provider');
     $branch_id = $this->session->userdata('branch_id');
-    $data = $this->db->order_by('name', 'ASC')->get_where('products', array('provider'=>$provider, 'status'=>1));
+    if ($this->db->table_exists('product_providers')) {
+        $data = $this->db->query(
+            "SELECT DISTINCT p.* FROM products p
+             LEFT JOIN product_providers pp ON pp.products_id = p.products_id
+             WHERE p.status = 1 AND (p.provider = ? OR pp.provider_id = ?)
+             ORDER BY p.name ASC",
+            array($provider, $provider)
+        );
+    } else {
+        $data = $this->db->order_by('name', 'ASC')->get_where('products', array('provider'=>$provider, 'status'=>1));
+    }
     $select = ' <option value="">Seleccionar</option> ';
     foreach($data->result_array() as $row){
     $select.= ' <option value="'.$row['name'].'">'.$row['name'].'</option> ';

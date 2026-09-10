@@ -6685,6 +6685,79 @@ function new_change()
     }
 
 
+    function get_product_provider_ids($product_id)
+    {
+        $ids = array();
+        if ($this->db->table_exists('product_providers')) {
+            $q = $this->db->get_where('product_providers', array('products_id' => $product_id));
+            foreach ($q->result_array() as $r) {
+                $ids[] = (int) $r['provider_id'];
+            }
+        }
+        if (empty($ids)) {
+            $p = $this->db->get_where('products', array('products_id' => $product_id))->row();
+            if ($p && !empty($p->provider)) {
+                $ids[] = (int) $p->provider;
+            }
+        }
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    function sync_product_providers($product_id, $provider_ids)
+    {
+        if (!$this->db->table_exists('product_providers')) {
+            return;
+        }
+        $provider_ids = array_values(array_unique(array_filter(array_map('intval', (array) $provider_ids))));
+        $this->db->where('products_id', $product_id)->delete('product_providers');
+        foreach ($provider_ids as $pid) {
+            if ($pid > 0) {
+                $this->db->insert('product_providers', array(
+                    'products_id' => $product_id,
+                    'provider_id' => $pid
+                ));
+            }
+        }
+    }
+
+    function resolve_product_providers_from_post()
+    {
+        $providers = $this->input->post('providers');
+        if (!is_array($providers) || empty($providers)) {
+            $single = $this->input->post('provider');
+            $providers = ($single !== null && $single !== '') ? array($single) : array();
+        }
+
+        $resolved = array();
+        $created_new = false;
+        foreach ($providers as $p) {
+            if ($p === 'Nuevo' || $p === 'nuevo') {
+                if ($created_new) {
+                    continue;
+                }
+                $provider = array(
+                    'name'     => $this->input->post('new_provider_name'),
+                    'manager'  => $this->input->post('new_provider_encargado'),
+                    'phone'    => $this->input->post('new_provider_phone'),
+                    'whatsapp' => $this->input->post('new_provider_whatsapp'),
+                    'email'    => $this->input->post('new_provider_email'),
+                );
+                $this->db->insert('provider', $provider);
+                $new_id = (int) $this->db->insert_id();
+                if ($new_id > 0) {
+                    $resolved[] = $new_id;
+                    $created_new = true;
+                    $message = 'Ha creado un nuevo proveedor denominado '.$this->input->post('new_provider_name');
+                    $this->insert_binnacle($message);
+                    $this->insert_notification($message, base64_encode('admin/proveedores/'), 'proveedores', 'Usuarios');
+                }
+            } elseif (is_numeric($p) && (int) $p > 0) {
+                $resolved[] = (int) $p;
+            }
+        }
+        return array_values(array_unique($resolved));
+    }
+
     function create_product()
     {
         $codigo = $this->input->post('code');
@@ -6746,26 +6819,8 @@ function new_change()
             $data['mark'] = $this->db->insert_id();
         }
 
-        if ($this->input->post('provider') == 'Nuevo') 
-        {
-            $provider['name']      = $this->input->post('new_provider_name');
-            $provider['manager']   = $this->input->post('new_provider_encargado');
-            $provider['phone']     = $this->input->post('new_provider_phone');
-            $provider['whatsapp']  = $this->input->post('new_provider_whatsapp');
-            $provider['email']     = $this->input->post('new_provider_email');
-            $this->db->insert('provider', $provider);
-            $data['provider'] = $this->db->insert_id();
-
-            $message = 'Ha creado un nuevo proveedor denominado '.$this->input->post('new_provider_name');
-            $this->insert_binnacle($message);
-    
-            $this->insert_notification($message, base64_encode('admin/proveedores/'), 'proveedores', 'Usuarios');
-        }
-        
-        else
-        {
-            $data['provider'] = $this->input->post('provider');
-        }
+        $provider_ids = $this->resolve_product_providers_from_post();
+        $data['provider'] = !empty($provider_ids) ? $provider_ids[0] : 0;
 
         if (is_numeric($this->input->post('category'))) 
         {
@@ -6825,6 +6880,7 @@ function new_change()
         $data['iva']    = $this->input->post('iva_check');
         $this->db->insert('products', $data); 
         $product_id = $this->db->insert_id();
+        $this->sync_product_providers($product_id, $provider_ids);
         
         $message    = 'Ha creado un producto llamado: '.$this->input->post('name');
         $this->insert_binnacle($message);
@@ -6833,7 +6889,7 @@ function new_change()
         $dat2['user_id']     = $this->session->userdata('login_user_id');
         $dat2['branch_id']   = $branch_id;
         $dat2['type']        = 1;
-        $dat2['provider']    = $this->input->post('provider');
+        $dat2['provider']    = $data['provider'];
         $dat2['amount']      = $this->input->post('stock');
         $dat2['price']       = $this->input->post('price');
         $dat2['cost']        = $this->input->post('cost');
@@ -6913,7 +6969,8 @@ function new_change()
         $data['code']               = $this->input->post('code');
         $data['precio_mayorista']   = $this->input->post('may');
         $data['precio_ferretero']   = $this->input->post('ferretero');
-        $data['provider']           = $this->input->post('provider');
+        $provider_ids               = $this->resolve_product_providers_from_post();
+        $data['provider']           = !empty($provider_ids) ? $provider_ids[0] : 0;
         $data['price']              = $this->input->post('price');
         $data['farma']              = $this->input->post('farma');
         $data['cost']               = $this->input->post('cost');
@@ -6936,6 +6993,7 @@ function new_change()
         //log_message("error",'IVA'.$data['iva']);
         $this->db->where('products_id', $ID);
         $this->db->update('products',  $data);
+        $this->sync_product_providers($ID, $provider_ids);
         $message = 'Ha actualizado el producto: '.$this->input->post('name');
         $this->insert_binnacle($message);        
     }

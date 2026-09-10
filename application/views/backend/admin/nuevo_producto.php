@@ -142,10 +142,10 @@
                             </div>
                             <div class="col-sm-4">
                                 <div class="form-group">
-                                    <label>Proveedor <span class="text-danger">*</span></label>
+                                    <label>Proveedores <span class="text-danger">*</span></label>
+                                    <small class="d-block text-muted mb-1">Puede seleccionar varios para comparar en solicitudes de compra</small>
                                     <div class="input-group">
-                                        <select class="form-control" name='provider' id='selected-2' required onchange="add_provider(this.value)">
-                                            <option value=''>Seleccionar</option>
+                                        <select class="form-control" name='providers[]' id='selected-2' required multiple onchange="add_provider(this)">
                                             <option value='Nuevo'>Nuevo</option>
                                             <?php $providers = $this->db->order_by('name', 'ASC')->get_where('provider',array('status'=>1)); foreach ($providers->result_array() as $provider):?>
                                             <option value="<?php echo $provider['provider_id'];?>">
@@ -465,11 +465,15 @@ $(document).ready(function() {
         allowClear: true,
         tags: true
     });
-    //Select de proveedor
+    //Select de proveedor (múltiples)
     $('#selected-2').select2({
         language: "es",
-        placeholder: 'Seleccionar',
-        allowClear: true
+        placeholder: 'Seleccionar uno o más',
+        allowClear: true,
+        closeOnSelect: false
+    });
+    $('#selected-2').on('change', function() {
+        add_provider(this);
     });
     //Select de categoria
     $('#selected-3').select2({
@@ -577,13 +581,15 @@ function add_branch(value) {
 
 
 
-function add_provider(value) {
-    if (value == "Nuevo") {
+function add_provider(el) {
+    var vals = $(el).val() || [];
+    if (!Array.isArray(vals)) {
+        vals = [vals];
+    }
+    if (vals.indexOf('Nuevo') !== -1) {
         $('#new_provider').show(500);
         $('#new_provider_name').attr('required', 'true');
-
     } else {
-
         $('#new_provider_name').removeAttr('required');
         $('#new_provider').hide(500);
     }

@@ -142,12 +142,13 @@
                             </div>
                             <div class="col-sm-4">
                                 <div class="form-group">
-                                    <label>Proveedor <span class="text-danger">*</span></label>
+                                    <label>Proveedores <span class="text-danger">*</span></label>
+                                    <small class="d-block text-muted mb-1">Puede seleccionar varios para comparar en solicitudes de compra</small>
                                     <div class="input-group">
-                                        <select class="form-control" name='provider' id='selected-provider' required>
-                                            <option value=''>Seleccionar</option>
+                                        <?php $selected_providers = $this->crud_model->get_product_provider_ids($row['products_id']); ?>
+                                        <select class="form-control" name='providers[]' id='selected-provider' required multiple>
                                             <?php $providers = $this->db->order_by('name', 'ASC')->get_where('provider',array('status'=>1)); foreach ($providers->result_array() as $provider):?>
-                                            <option value="<?php echo $provider['provider_id'];?>" <?php echo ($provider['provider_id'] == $row['provider']) ? 'selected':'' ?>>
+                                            <option value="<?php echo $provider['provider_id'];?>" <?php echo in_array((int)$provider['provider_id'], $selected_providers) ? 'selected':'' ?>>
                                                 <?php echo $provider['name'];?>
                                             </option>
                                             <?php endforeach;?>
@@ -375,8 +376,9 @@ $(document).ready(function() {
 
     $('#selected-provider').select2({
         language: "es",
-        placeholder: 'Seleccionar',
-        allowClear: true
+        placeholder: 'Seleccionar uno o más',
+        allowClear: true,
+        closeOnSelect: false
     });
 
     $('#selected-category').select2({
