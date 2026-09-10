@@ -11445,8 +11445,15 @@ function new_change()
         'status' => '1',
         'code' => $code
         );
-        $html = $this->load->view('backend/viewspdf/compra.php',$data,TRUE); 
-        $pdfFilePath = "Compra-".$code.date('d/m/Y H:i:s').".pdf";
+        $compra = $this->db->get_where('shopping', array('code' => $code))->row();
+        // type 3 = solicitud: documento sin precios/descuentos
+        if ($compra && (int)$compra->type === 3) {
+            $html = $this->load->view('backend/viewspdf/solicitud_compra.php',$data,TRUE);
+            $pdfFilePath = "Solicitud-".$code.date('d/m/Y H:i:s').".pdf";
+        } else {
+            $html = $this->load->view('backend/viewspdf/compra.php',$data,TRUE);
+            $pdfFilePath = "Compra-".$code.date('d/m/Y H:i:s').".pdf";
+        }
         $this->load->library('M_pdf');
         $mpdf = new mPDF('utf-8','A4'); 
         $mpdf->packTableData = true;
