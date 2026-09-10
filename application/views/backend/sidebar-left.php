@@ -458,7 +458,7 @@
                     </div>
                     <div class="col-md-12">
                         <br>
-                        <a href="javascript:;" hidden onclick="showModalCodigos('<?php echo base_url();?>modal/popup/modalCodigos/<?php echo $page_name;?>');" class="btn btn-success font-weight-bolder" type='succsess' disabled id='confirm' syle='float: right;'>
+                        <a href="javascript:;" hidden onclick="submitForm();" class="btn btn-success font-weight-bolder" type='succsess' disabled id='confirm' syle='float: right;'>
                             Confirmar solicitud
                         </a>
                     </div>
