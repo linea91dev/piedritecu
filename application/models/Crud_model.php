@@ -6458,6 +6458,95 @@ function new_change()
         else
             return 0;
     }
+
+    /** Stock total del producto en todas las sucursales/bodega (antes de una compra). */
+    function get_total_stock($product_id)
+    {
+        $this->db->select_sum('amount', 'amount');
+        $this->db->where('products_id', $product_id);
+        $this->db->group_start();
+        $this->db->where('type', 1);
+        $this->db->or_where('type', 2);
+        $this->db->group_end();
+        $this->db->where('status', 1);
+        $stock = $this->db->get('product_details')->row()->amount;
+
+        $this->db->select_sum('amount', 'amount');
+        $this->db->where('products_id', $product_id);
+        $this->db->group_start();
+        $this->db->where('type', 0);
+        $this->db->or_where('type', 3);
+        $this->db->or_where('type', 4);
+        $this->db->group_end();
+        $this->db->where('status', 1);
+        $discount = $this->db->get('product_details')->row()->amount;
+
+        $total = floatval($stock) - floatval($discount);
+        return $total > 0 ? $total : 0;
+    }
+
+    /**
+     * Costo promedio ponderado:
+     * (existencia_actual * costo_actual + cantidad_compra * costo_compra) / (existencia_actual + cantidad_compra)
+     */
+    function calculate_weighted_average_cost($stock_before, $current_cost, $purchase_qty, $purchase_cost)
+    {
+        $stock_before  = floatval($stock_before);
+        $current_cost  = floatval($current_cost);
+        $purchase_qty  = floatval($purchase_qty);
+        $purchase_cost = floatval($purchase_cost);
+
+        if ($purchase_qty <= 0) {
+            return round($current_cost, 4);
+        }
+        if ($stock_before <= 0) {
+            return round($purchase_cost, 4);
+        }
+        return round(
+            ($stock_before * $current_cost + $purchase_qty * $purchase_cost) / ($stock_before + $purchase_qty),
+            4
+        );
+    }
+
+    /**
+     * Actualiza products.cost (y caja/matriz relacionadas) con costo promedio ponderado.
+     * Debe llamarse con el stock ANTES de registrar el ingreso de la compra.
+     */
+    function apply_weighted_average_product_cost($purchased_product_id, $unit_product_id, $purchase_qty_units, $purchase_unit_cost, $is_caja = false, $cnt_prod_matriz = 0)
+    {
+        $prod = $this->db->get_where('products', array('products_id' => $unit_product_id))->row();
+        if (!$prod) {
+            return floatval($purchase_unit_cost);
+        }
+
+        $stock_before = $this->get_total_stock($unit_product_id);
+        $new_cost = $this->calculate_weighted_average_cost(
+            $stock_before,
+            $prod->cost,
+            $purchase_qty_units,
+            $purchase_unit_cost
+        );
+
+        if ($is_caja) {
+            $this->db->where('products_id', $unit_product_id);
+            $this->db->update('products', array('cost' => $new_cost));
+            $caja_cost = $new_cost * floatval($cnt_prod_matriz);
+            $this->db->where('products_id', $purchased_product_id);
+            $this->db->update('products', array('cost' => $caja_cost));
+        } else {
+            $this->db->where('products_id', $purchased_product_id);
+            $this->db->update('products', array('cost' => $new_cost));
+            $caja = $this->db->get_where('products', array('id_prod_matriz' => $unit_product_id, 'status' => 1));
+            if ($caja->num_rows() > 0) {
+                $this->db->where('products_id', $caja->row()->products_id);
+                $this->db->update('products', array(
+                    'cost' => $new_cost * floatval($caja->row()->cnt_prod_matriz)
+                ));
+            }
+        }
+
+        return $new_cost;
+    }
     
     
     function get_stock_inventario($product_id,$branch_id)
@@ -7694,6 +7783,17 @@ function new_change()
                     $cantidad = $amount[$i];
                     $cost = $price_buy[$i];
                 }
+
+                // Costo promedio ponderado con existencia ANTES de registrar la compra
+                $this->apply_weighted_average_product_cost(
+                    $product[$i],
+                    $id_producto,
+                    $cantidad,
+                    $cost,
+                    ($producto->presentation == 'Caja'),
+                    $producto->cnt_prod_matriz
+                );
+
                 $dat2['date']         = date('Y-m-d');
                 $dat2['products_id']  = $id_producto;
                 $dat2['expiration']   = $expiration[$i];
@@ -7721,18 +7821,6 @@ function new_change()
                 $dat_lote['chk_factura'] = $this->input->post('chk_factura');
                 $this->db->insert('lotes', $dat_lote); 
                 
-                // Calculate weighted average cost
-                $this->db->select('SUM(existencia * precio) as total_value, SUM(existencia) as total_quantity');
-                $this->db->where('id_producto', $id_producto);
-                $this->db->where('existencia >', 0);
-                $this->db->where('branch_id', $destino);
-                $result = $this->db->get('lotes')->row();
-                if ($result && $result->total_quantity > 0) {
-                    $new_cost = $result->total_value / $result->total_quantity;
-                } else {
-                    $new_cost = $cost;
-                }
-                
                 $name    = $this->db->get_where('products',array('products_id'=>$dat2['products_id']))->row()->name;
                 $message = 'Ha agregado un nuevo lote de '.$name;
                 $this->insert_binnacle($message);
@@ -7746,25 +7834,6 @@ function new_change()
                     }
                 }
                 $anterior = $dat2['provider'];
-
-                if($producto->presentation == 'Caja'){
-                    $dat_matr['cost'] = $new_cost;
-                    $this->db->where('products_id', $id_producto);
-                    $this->db->update('products', $dat_matr);
-                    $dat_caja['cost'] = $new_cost * $producto->cnt_prod_matriz;
-                    $this->db->where('products_id', $product[$i]);
-                    $this->db->update('products', $dat_caja);
-                } else {
-                    $dat_prod['cost'] = $new_cost;
-                    $this->db->where('products_id', $product[$i]);
-                    $this->db->update('products', $dat_prod);
-                    $caja = $this->db->get_where('products', array('id_prod_matriz'=>$id_producto, 'status'=>1));
-                    if ($caja->num_rows() > 0) {
-                        $dat_caja['cost'] = $new_cost * $caja->row()->cnt_prod_matriz;
-                        $this->db->where('products_id', $caja->row()->products_id);
-                        $this->db->update('products', $dat_caja);
-                    }
-                }
             }
         }
 
@@ -8168,7 +8237,7 @@ function new_change()
                     $id_product = $pro[$i]['product']; $amount = $pro[$i]['amount_give']; $cost = $pro[$i]['price_buy'];
                     $prod = $this->db->get_where('products', array('products_id'=>$pro[$i]['product']))->row_array();
                     $iva = 0;
-                    if (!$producto->iva) $iva = 0;
+                    if (empty($prod['iva'])) $iva = 0;
                     else $iva = 1;
 
                     if ($prod['presentation'] == 'Caja') {
@@ -8177,6 +8246,16 @@ function new_change()
                         if ($prod['cnt_prod_matriz'] > 0) $cost = $pro[$i]['price_buy'] / $prod['cnt_prod_matriz'];
                         else $cost = $pro[$i]['price_buy'];
                     }
+
+                    // Costo promedio ponderado con existencia ANTES de registrar la compra
+                    $this->apply_weighted_average_product_cost(
+                        $pro[$i]['product'],
+                        $id_product,
+                        $amount,
+                        $cost,
+                        ($prod['presentation'] == 'Caja'),
+                        $prod['cnt_prod_matriz']
+                    );
                     
                     $dat2['date']         = $row['date'];
                     $dat2['products_id']  = $id_product;
@@ -8208,38 +8287,6 @@ function new_change()
                     $dat_lote['precio']     = $cost;
                     $dat_lote['branch_id']  = $row['destiny'];
                     $this->db->insert('lotes', $dat_lote);
-                    
-                    // Calculate weighted average cost
-                    $this->db->select('SUM(existencia * precio) as total_value, SUM(existencia) as total_quantity');
-                    $this->db->where('id_producto', $id_product);
-                    $this->db->where('existencia >', 0);
-                    $this->db->where('branch_id', $row['destiny']);
-                    $result = $this->db->get('lotes')->row();
-                    if ($result && $result->total_quantity > 0) {
-                        $new_cost = $result->total_value / $result->total_quantity;
-                    } else {
-                        $new_cost = $cost;
-                    }
-                    
-                    $data_prod['cost'] = $new_cost;
-                    
-                    if ($prod['presentation'] == 'Caja'){
-                        $dat_matr['cost'] = $new_cost;
-                        $this->db->where('products_id', $id_product);
-                        $this->db->update('products', $dat_matr);
-                        $dat_caja['cost'] = $new_cost * $prod['cnt_prod_matriz'];
-                        $this->db->where('products_id', $pro[$i]['product']);
-                        $this->db->update('products', $dat_caja);
-                    } else {
-                        $this->db->where('products_id', $pro[$i]['product']);
-                        $this->db->update('products', $data_prod);
-                        $caja = $this->db->get_where('products', array('id_prod_matriz'=>$id_product, 'status'=>1));
-                        if ($caja->num_rows() > 0) {
-                            $dat_caja['cost'] = $new_cost * $caja->row()->cnt_prod_matriz;
-                            $this->db->where('products_id', $caja->row()->products_id);
-                            $this->db->update('products', $dat_caja);
-                        }
-                    }
                 }
             }
         }
