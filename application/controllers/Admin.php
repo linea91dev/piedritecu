@@ -5073,7 +5073,7 @@ echo $table;
             <input type="hidden" id="productoss-'.$pro.'" name="product[]" value=" '.$row['products_id'].'">
         </td>
         <td>
-            <input min="1" class="form-control aumentar-'.$pro.'" type="number" style="width:100px" id="amount-'.$id.'" name="amount[]" value="1" onchange="alert('.$id.')"  onkeyup=".$id." onblur="sum('.$id.')">
+            <input min="1" class="form-control aumentar-'.$pro.'" type="number" style="width:100px" id="amount-'.$id.'" name="amount[]" value="1" onchange="sum('.$id.')" onkeyup="sum('.$id.')" onblur="sum('.$id.')">
         </td>
         <td class="text-right">
             <a class="badge badge-danger" style="padding:3px;" onclick="removeOption(\''.$id.'\')" href="javascript:;">
