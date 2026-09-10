@@ -97,16 +97,13 @@
                 <table cellpadding="0" cellspacing="0"
                     style="border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;width: 100%;line-height: inherit;">
                     <tr>
-                        <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: left; width:18%;">
+                        <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: left; width:22%;">
                             Código
                         </td>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: left;">
                             Producto
                         </td>
-                        <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: left; width:28%;">
-                            Fecha de vencimiento
-                        </td>
-                        <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: center; width:14%;">
+                        <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: center; width:18%;">
                             Cantidad
                         </td>
                     </tr>
@@ -122,13 +119,6 @@
                         </td>
                         <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;font-size: 12px;">
                             <?php echo ($pr && isset($pr->name)) ? $pr->name : '-';?>
-                        </td>
-                        <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; font-size: 12px; text-align:center;">
-                            <?php if(!empty($pro['expiration'])){
-                            $Fecha_Exp = date("Y-m-d", strtotime($pro['expiration'])); $Exp_Fecha = strftime("%d de %B de %Y", strtotime($Fecha_Exp));
-                            echo $Exp_Fecha; }
-                            else{ echo 'No definida';
-                            }?>
                         </td>
                         <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; font-size: 12px; text-align:center;">
                             <?php echo $pro['amount']; ?>
