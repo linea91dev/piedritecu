@@ -256,7 +256,7 @@
                                             <?php if($user_type == 1 || $permisos['reportes_compras'] == 1):?>
                                             <a href="<?php echo base_url().'admin/export_pdf/compra/'.$row['code'];?>"
                                                 data-toggle="tooltip" data-original-title="Imprimir"
-                                                class="btn btn-icon btn-bg-light btn-active-color-info btn-sm">
+                                                class="btn btn-icon btn-bg-light btn-active-color-info btn-sm" target="_blank">
                                                 <span class="svg-icon svg-icon-primary svg-icon-2x">
                                                     <svg xmlns="http://www.w3.org/2000/svg"
                                                         xmlns:xlink="http://www.w3.org/1999/xlink" width="24px"
