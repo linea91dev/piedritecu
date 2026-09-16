@@ -594,7 +594,7 @@
                                         <label>Credito</label>
                                         <span class="switch switch-sm">
                                             <label>
-                                                <input type="checkbox" name="credito" onchange="" value="1" />
+                                                <input type="checkbox" name="credito" id="credito_compra" onchange="toggleDiasCreditoCompra()" value="1" />
                                                 <span></span>
                                             </label>
                                         </span>
@@ -625,6 +625,17 @@
                                             </label>
                                         </span>
                                     </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-12" id="wrap_dias_credito_compra" style="display:none;">
+                                <div class="form-group">
+                                    <label><b>Días de crédito:</b> <span class="text-danger">*</span></label>
+                                    <select class="form-control" name="dias_credito" id="dias_credito_compra">
+                                        <option value="">Seleccionar</option>
+                                        <option value="15">15 días</option>
+                                        <option value="30">30 días</option>
+                                        <option value="45">45 días</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -1534,11 +1545,22 @@ function cui(value) {
     }
 }
 
+function toggleDiasCreditoCompra() {
+    if ($('#credito_compra').is(':checked')) {
+        $('#wrap_dias_credito_compra').show(300);
+        $('#dias_credito_compra').attr('required', true);
+    } else {
+        $('#wrap_dias_credito_compra').hide(300);
+        $('#dias_credito_compra').removeAttr('required').val('');
+    }
+}
+
 $(document).ready(function() {
     $('#selected-0').select2({
         language: "es",
         placeholder: 'Seleccionar',
         allowClear: true
     });
+    toggleDiasCreditoCompra();
 })
 </script>

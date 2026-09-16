@@ -182,6 +182,9 @@
                                 <?php if($shopping->promocion == 1):?>
                                 <span class="badge badge-info">Promoción</span>
                                 <?php endif;?>
+                                <?php if($shopping->credito == 1):?>
+                                <span class="badge badge-warning">Crédito<?php if(!empty($shopping->dias_credito)) echo ' '.$shopping->dias_credito.' días';?></span>
+                                <?php endif;?>
                             </div>
                         </div>
                         <div class="col-sm-8">

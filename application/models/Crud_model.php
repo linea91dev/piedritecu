@@ -7844,8 +7844,14 @@ function new_change()
         $data['provider']    = $provider_id;
         if($credito == 1){
         $data['credito']    = 1 ;
+        $dias_credito = (int) $this->input->post('dias_credito');
+        if (!in_array($dias_credito, array(15, 30, 45), true)) {
+            $dias_credito = 0;
+        }
+        $data['dias_credito'] = $dias_credito;
         }else{ 
             $data['credito']    = 0;
+            $data['dias_credito'] = 0;
         }
 
         $data['products']     = json_encode($products);

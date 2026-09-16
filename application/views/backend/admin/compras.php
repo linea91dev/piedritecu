@@ -157,7 +157,7 @@
                                             class="badge badge-<?php if($row['type']==3){echo 'warning';}elseif($row['type']==2){echo 'info';}elseif($row['type']==1){echo 'success';} ?>"><?php if($row['type']==3){echo 'Solicitud de compra ';}elseif($row['type']==2){echo 'Orden de compra';}elseif($row['type']==1){echo 'Completado';} ?></span>
                                     </td>
                                     <td><span
-                                            class="badge badge-<?php if($row['credito']==1){echo 'warning';}elseif($row['credito']==0){echo 'success';} ?>"><?php if($row['credito']==1){echo 'Activo';}elseif($row['credito']==0){echo 'Completado';} ?></span>
+                                            class="badge badge-<?php if($row['credito']==1){echo 'warning';}elseif($row['credito']==0){echo 'success';} ?>"><?php if($row['credito']==1){echo 'Activo'.(!empty($row['dias_credito']) ? ' ('.$row['dias_credito'].' días)' : '');}elseif($row['credito']==0){echo 'Completado';} ?></span>
                                     </td>
                                     <td><?php echo $this->crud_model->getName('admin', $row['responsable']);?></td>
                                     <td><?php echo $this->crud_model->getSingleName('provider', $row['provider']);?></td>
