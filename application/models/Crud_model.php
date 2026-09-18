@@ -432,32 +432,11 @@ class Crud_model extends CI_Model {
         //return $venta;
     }*/
     function total_inventario(){
-        /*$branch_id = $this->session->userdata('branch_id');
-        $query = $this->db->query('
-            SELECT SUM(calcinvent(products.products_id, '.$branch_id.', products.id_prod_matriz, products.cnt_prod_matriz) * products.cost) AS total 
-            FROM products 
-            WHERE products.status = 1 AND products.presentation = "Unidad";
-        ');
-        
-        $total = $query->row()->total;
-
-        $query = $this->db->query('select products.products_id, products.name, products.code,products.cost, calcinvent(products.products_id, '.$branch_id.',products.id_prod_matriz, products.cnt_prod_matriz) as tienda from products where products.status = 1 and products.presentation = "Unidad" order by products.products_id desc;');
-        $tt=0;
-        foreach($query->result_array() as $row)
-        {
-            $tt = $tt + ($row['tienda']*$row['cost']);
-        }*/
-        
         $branch_id = $this->session->userdata('branch_id');
-        $np = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='1' AND status='1' ")->row()->total;
-        
-        //$traslado = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Traslado' AND type='0'")->row()->total;
-        //$venta = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Venta' AND type='0' AND status = '1'")->row()->total;
-        
-        $salidas        = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='0' AND status = 1;")->row()->total;
-        
-        $devol = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Devolución' AND type='3'")->row()->total;
-        $perd = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Pérdida' AND type='4'")->row()->total;
+        $np = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='1' AND status='1'")->row()->total;
+        $salidas = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='0' AND status='1'")->row()->total;
+        $devol = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Devolución' AND type='3' AND status='1'")->row()->total;
+        $perd = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Pérdida' AND type='4' AND status='1'")->row()->total;
         $compra = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='2' AND status='1'")->row()->total;
         $total = ($np+$compra)-($salidas + $devol + $perd);
         return number_format($total,2,'.',',');
@@ -481,27 +460,13 @@ class Crud_model extends CI_Model {
     }*/
     
     function total_bodega(){
-        $branch_id      = '0'; //Branch id Bodega es 0!!!!!!!
-        $np             = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='1' AND status='1';")->row()->total; // total de iniciales
-        
-        $salidas        = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='0' AND status = 1;")->row()->total;
-        
-        //$traslado = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Traslado' AND type='0;'")->row()->total;
-        //$venta = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Venta' AND type='0' AND status = 1;")->row()->total;
-        $devol = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Devolución' AND type='3';")->row()->total;
-        $perd = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Pérdida' AND type='4';")->row()->total;
-        $compra = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='2'")->row()->total;
-        //log_message('error'," np= ".$np.'/ compra='.$compra.'/traslado='.$traslado.'/venta='.$venta.'/devolucion='.$devol.'/perdida='.$perd);
-        //$total = (($np+$compra)-$traslado)-($venta + $devol + $perd);
+        $branch_id = '0'; //Branch id Bodega es 0!!!!!!!
+        $np = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='1' AND status='1'")->row()->total;
+        $salidas = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='0' AND status='1'")->row()->total;
+        $devol = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Devolución' AND type='3' AND status='1'")->row()->total;
+        $perd = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Pérdida' AND type='4' AND status='1'")->row()->total;
+        $compra = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='2' AND status='1'")->row()->total;
         $total = ($np+$compra)-($salidas + $devol + $perd);
-        /*$branch_id = 0;
-        $query = $this->db->query('
-            SELECT SUM(calcinvent(products.products_id, '.$branch_id.', products.id_prod_matriz, products.cnt_prod_matriz) * products.cost) AS total 
-            FROM products 
-            WHERE products.status = 1 AND products.presentation = "Unidad";
-        ');
-        
-        $total = $query->row()->total;*/
         return number_format($total,2,'.',',');
     }
 
@@ -533,30 +498,20 @@ class Crud_model extends CI_Model {
     function total_inversion(){
         $branch_id = $this->session->userdata('branch_id');
         
-        $np = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='1' AND status='1' ")->row()->total;
-        
-        //$traslado = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Traslado' AND type='0'")->row()->total;
-        //$venta = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Venta' AND type='0'")->row()->total;
-        
-        $salidas        = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='0' AND status = 1;")->row()->total;
-        
-        $devol = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Devolución' AND type='3'")->row()->total;
-        $perd = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Pérdida' AND type='4'")->row()->total;
+        $np = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='1' AND status='1'")->row()->total;
+        $salidas = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='0' AND status='1'")->row()->total;
+        $devol = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Devolución' AND type='3' AND status='1'")->row()->total;
+        $perd = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Pérdida' AND type='4' AND status='1'")->row()->total;
         $compra = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='2' AND status='1'")->row()->total;
         
         $total_in = ($np+$compra)-($salidas  + $devol + $perd);
         
         $branch_id = '0';
-        $np = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='1' AND status='1' ")->row()->total;
-        
-        //$traslado = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Traslado' AND type='0'")->row()->total;
-        //$venta = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Venta' AND type='0'")->row()->total;
-        
-        $salidas        = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='0' AND status = 1;")->row()->total;
-        
-        $devol = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Devolución' AND type='3'")->row()->total;
-        $perd = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Pérdida' AND type='4'")->row()->total;
-        $compra = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='2'")->row()->total;
+        $np = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='1' AND status='1'")->row()->total;
+        $salidas = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='0' AND status='1'")->row()->total;
+        $devol = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Devolución' AND type='3' AND status='1'")->row()->total;
+        $perd = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND description='Pérdida' AND type='4' AND status='1'")->row()->total;
+        $compra = $this->db->query("SELECT sum(cost * amount) as total FROM `product_details` WHERE branch_id = '$branch_id' AND type='2' AND status='1'")->row()->total;
         $total_b = ($np+$compra)-($salidas  + $devol + $perd);
         
         $total = $total_in + $total_b;
