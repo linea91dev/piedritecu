@@ -10438,83 +10438,144 @@ if($currentTime <= json_decode($payload)->exp){
             
             function import_products_old()
             {
-                $this->load->library('PHPExcel'); 
-                $path = 'multiahorro.xlsx';
+                // Excel: REPORTE DE INVENTARIO PRELIMINAR AL 12.07.xlsx
+                // Columnas: ESTABLECIMIENTO | BODEGA | CATEGORIA | GRUPO | MARCA | CODIGO | C.BARRA | PRODUCTO | CANTIDAD | COSTO | TOTAL COSTO | PRECIO | TOTAL PRECIO | RENTABILIDAD | KARDEX
+                // Se usan: código, nombre, marca, categoría, cantidad, costo y precio. Se ignoran totales/rentabilidad/kardex.
+                $this->load->library('PHPExcel');
+                $path = FCPATH.'inventario_preliminar_12_07.xlsx';
+                if (!file_exists($path)) {
+                    echo 'No se encontro el archivo: inventario_preliminar_12_07.xlsx en la raiz del proyecto.';
+                    return;
+                }
+
                 $object = PHPExcel_IOFactory::load($path);
-                foreach($object->getWorksheetIterator() as $worksheet)
-                {
+                $cont = 0;
+                $updated = 0;
+                $created = 0;
+                $skipped = 0;
+
+                foreach ($object->getWorksheetIterator() as $worksheet) {
                     $highestRow = $worksheet->getHighestRow();
-                    $highestColumn = $worksheet->getHighestColumn();
-                    $cont = 1;
-                    for($row=2; $row <= $highestRow; $row++)
-                    {
-                        $name           = $worksheet->getCellByColumnAndRow(0, $row)->getValue();
-                        $amount         = $worksheet->getCellByColumnAndRow(1, $row)->getValue();
-                        $precio         = $worksheet->getCellByColumnAndRow(2, $row)->getValue();
-                        $mayorista      = $worksheet->getCellByColumnAndRow(3, $row)->getValue();
-                        $socio          = $worksheet->getCellByColumnAndRow(4, $row)->getValue();
-                        $costo          = $worksheet->getCellByColumnAndRow(5, $row)->getValue();
-                        $marca          = $worksheet->getCellByColumnAndRow(6, $row)->getValue();
-                        $iva            = $worksheet->getCellByColumnAndRow(7, $row)->getValue();
-                        
-                        if($name != '')
-                        {
-                            //echo $cont++.' Nuevo Producto '.$name.'--'.$amount.'--'.$precio.'--'.$mayorista.'--'.$socio.'--'.$costo.'--'.$marca.'--'.$iva.'<br>';
-                          $exist_marca = $this->db->where('name',$marca)->get('mark');
-                          if($exist_marca->num_rows() == 0)
-                            {
-                                $data_marca['name']    = $marca;
-                                $data_marca['branch_id']    = 1;
-                                $this->db->insert('mark', $data_marca); 
+                    for ($row = 2; $row <= $highestRow; $row++) {
+                        $categoria_name = trim((string) $worksheet->getCellByColumnAndRow(2, $row)->getValue());
+                        $marca_name     = trim((string) $worksheet->getCellByColumnAndRow(4, $row)->getValue());
+                        $code           = trim((string) $worksheet->getCellByColumnAndRow(5, $row)->getValue());
+                        $name           = trim((string) $worksheet->getCellByColumnAndRow(7, $row)->getValue());
+                        $amount_raw     = $worksheet->getCellByColumnAndRow(8, $row)->getValue(); // CANTIDAD
+                        $costo_raw      = $worksheet->getCellByColumnAndRow(9, $row)->getValue(); // COSTO (no TOTAL COSTO)
+                        $precio_raw     = $worksheet->getCellByColumnAndRow(11, $row)->getValue(); // PRECIO (no TOTAL PRECIO)
+
+                        // Ignorar filas vacías o de totales
+                        if ($code === '' || $name === '') {
+                            $skipped++;
+                            continue;
+                        }
+                        if (stripos($name, 'TOTAL') !== false || stripos($code, 'TOTAL') !== false) {
+                            $skipped++;
+                            continue;
+                        }
+
+                        $amount = is_numeric($amount_raw) ? floatval($amount_raw) : floatval(str_replace(',', '', (string) $amount_raw));
+                        $costo  = is_numeric($costo_raw) ? floatval($costo_raw) : floatval(str_replace(',', '', (string) $costo_raw));
+                        $precio = is_numeric($precio_raw) ? floatval($precio_raw) : floatval(str_replace(',', '', (string) $precio_raw));
+                        if ($amount < 0) $amount = 0;
+                        if ($costo < 0) $costo = 0;
+                        if ($precio < 0) $precio = 0;
+
+                        // Marca
+                        $id_mark = 1;
+                        if ($marca_name !== '') {
+                            $exist_marca = $this->db->where('name', $marca_name)->get('mark');
+                            if ($exist_marca->num_rows() == 0) {
+                                $this->db->insert('mark', array(
+                                    'name' => $marca_name,
+                                    'branch_id' => 1,
+                                    'status' => 1
+                                ));
                                 $id_mark = $this->db->insert_id();
-                            }else{
+                            } else {
                                 $id_mark = $exist_marca->row()->mark_id;
                             }
-                            if($iva == 'SI'){
-                                $iva2 = 1;
-                            }else{
-                                $iva2 = 0;
+                        }
+
+                        // Categoría
+                        $id_category = 1;
+                        if ($categoria_name !== '') {
+                            $exist_cat = $this->db->where('name', $categoria_name)->get('categories');
+                            if ($exist_cat->num_rows() == 0) {
+                                $this->db->insert('categories', array(
+                                    'name' => $categoria_name,
+                                    'branch_id' => 1,
+                                    'status' => 1
+                                ));
+                                $id_category = $this->db->insert_id();
+                            } else {
+                                $id_category = $exist_cat->row()->category_id;
                             }
-                                if($name != '')
-                                {
-                                    //echo $cont++.' Nuevo Producto '.$name.'--'.$amount.'<br>';
-                                    //echo $cont++.' Nuevo Producto '.$exist->row()->products_id.'//'.$exist->row()->name.'--'.$exist->row()->price.'--'.$exist->row()->cost.'<br>';
-                                    echo $cont++.' Nuevo Producto1111 '.$name.'--'.$amount.'--'.$precio.'--'.$mayorista.'--'.$socio.'--'.$costo.'--'.$marca.'--'.$iva.'<br>';
-                                    //$code = $this->crud_model->getCodeIngreso();
-                                    
-                                    $data['code']    =  $cont;
-                                    $data['name']     =  $name;
-                                    $data['category']         =  1;
-                                    $data['provider']               =  1;
-                                    $data['mark']               =  $id_mark;
-                                    $data['stock_bodega']       =  $amount;
-                                    $data['cost']               =  $costo;
-                                    $data['precio_mayorista']   =  $mayorista;
-                                    $data['farma']   =  $socio;
-                                    $data['price']              =  $precio;
-                                    $data['status']             = 1;
-                                    $this->db->insert('products',$data);
-                                    $products_id = $this->db->insert_id();
-                                    
-                                        $data2['products_id']   =   $products_id;
-                                        $data2['user_id']    =   1;
-                                        $data2['type']      =   1;
-                                        $data2['branch_id']      =   0;
-                                        $data2['amount']      =  $amount;
-                                        $data2['provider']      =  $data['provider'];
-                                        $data2['price']      =  $data['price'];
-                                        $data2['cost']      =  $data['cost'];
-                                        $data2['status']      =  1;
-                                        $data2['estado']      =  1;
-                                        $data2['date']      =  date('Y/m/d');
-                    
-                                        $this->db->insert('product_details' , $data2);
-                                    
-                                }
-                            
+                        }
+
+                        $exist = $this->db->where('code', $code)->get('products');
+                        $cont++;
+
+                        if ($exist->num_rows() > 0) {
+                            $products_id = $exist->row()->products_id;
+                            $data_upd = array(
+                                'name' => $name,
+                                'category' => $id_category,
+                                'mark' => $id_mark,
+                                'cost' => round($costo, 4),
+                                'price' => round($precio, 4),
+                                'stock_bodega' => $amount,
+                                'status' => 1
+                            );
+                            $this->db->where('products_id', $products_id);
+                            $this->db->update('products', $data_upd);
+                            $updated++;
+                            echo $cont.'. Actualizado '.$code.' | '.$name.' | cant='.$amount.' | costo='.round($costo,4).' | precio='.round($precio,4).'<br>';
+                        } else {
+                            $data = array(
+                                'code' => $code,
+                                'name' => $name,
+                                'category' => $id_category,
+                                'provider' => 1,
+                                'mark' => $id_mark,
+                                'stock_inventory' => 0,
+                                'stock_bodega' => $amount,
+                                'cost' => round($costo, 4),
+                                'price' => round($precio, 4),
+                                'precio_mayorista' => 0,
+                                'farma' => 0,
+                                'presentation' => 'Unidad',
+                                'status' => 1,
+                                'branch_id' => 0
+                            );
+                            $this->db->insert('products', $data);
+                            $products_id = $this->db->insert_id();
+
+                            if ($amount > 0) {
+                                $data2 = array(
+                                    'products_id' => $products_id,
+                                    'user_id' => 1,
+                                    'type' => 1,
+                                    'branch_id' => 0, // Bodega
+                                    'amount' => $amount,
+                                    'provider' => 1,
+                                    'price' => round($precio, 4),
+                                    'cost' => round($costo, 4),
+                                    'status' => 1,
+                                    'estado' => 1,
+                                    'description' => 'Inicial',
+                                    'date' => date('Y-m-d')
+                                );
+                                $this->db->insert('product_details', $data2);
+                            }
+                            $created++;
+                            echo $cont.'. Nuevo '.$code.' | '.$name.' | cant='.$amount.' | costo='.round($costo,4).' | precio='.round($precio,4).'<br>';
                         }
                     }
                 }
+
+                echo '<hr>Listo. Nuevos: '.$created.' | Actualizados: '.$updated.' | Omitidos: '.$skipped.' | Procesados: '.$cont;
             }
             function import_products2()
             {
