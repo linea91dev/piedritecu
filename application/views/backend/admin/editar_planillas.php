@@ -1,14 +1,14 @@
 <?php 
     $moneda = $this->crud_model->get_info("moneda");
     $planilla = $this->crud_model->get_info("planilla");
-    $edit_data	=	$this->db->get_where('payroll' , array('payroll_id' => $param2))->result_array(); 
+    $edit_data	=	$this->db->get_where('payroll' , array('payroll_id' => $param2))->result_array();
+    $employee_ids_js = array();
   	foreach ($edit_data as $row):
         if ($row['employee'] != "" || $row['employee'] != null) {
             $employee = json_decode($row['employee'],true);
         } else {
             $employee = array();
-        } ;
-        $_id = $employee[$i]['employee'];
+        }
         $payroll_name = isset($row['payroll_name']) ? $row['payroll_name'] : 'Oficial';
         $is_bonus_edit = in_array($payroll_name, array('Bono 14', 'Aguinaldo'), true);
         $update_action = $is_bonus_edit
@@ -70,7 +70,7 @@
             <div class="form-group">
                 <label>Debitar de <span class="text-danger">*</span></label>
                 <div class="input-group">
-                    <select class="form-control" name='bank' required disabled>
+                    <select class="form-control" disabled>
                         <option value=''>Seleccionar</option>
                         <?php $bancos = $this->db->get_where('account_bank', array('status'=>1, 'bank_id !='=>0))->result_array(); foreach ($bancos as $banco):?>
                         <option value="<?php echo $banco['account_bank_id'];?>"
@@ -80,6 +80,7 @@
                         <?php endforeach;?>
                         <option value="0" <?php if($row['bank'] == 0) echo 'selected'; ?>>Caja chica</option>
                     </select>
+                    <input type="hidden" name="bank" value="<?php echo $row['bank'];?>">
                 </div>
             </div>
         </div>
@@ -134,17 +135,18 @@
                     <tbody>
                         <?php for ($i=0; $i < $row['num_employee'] ; $i++) :?>
                         <?php
+                        if (!isset($employee[$i])) continue;
+                        $_id = $employee[$i]['employee'];
+                        $employee_ids_js[] = $_id;
                         $current_method = isset($employee[$i]['payment_method']) ? $employee[$i]['payment_method'] : 'Electrónico';
                         if (!in_array($current_method, array('Cheque', 'Electrónico', 'Efectivo'), true)) {
                             $current_method = 'Electrónico';
                         }
                         ?>
-                        <?php if($i == $param3):?>
                         <tr>
                             <td>
                                 <?php echo $this->crud_model->getName('admin',$employee[$i]['employee']);?>
                                 <input type="hidden" name="employee[]" value='<?php echo $employee[$i]['employee'];?>'>
-
                             </td>
                             <td><span
                                     class="text-info font-weight-bolder"><?php echo $moneda.number_format($employee[$i]['salary'],2,'.',',');?></span>
@@ -197,40 +199,10 @@
                             </td>
                             <td><textarea rows="1" class="form-control"
                                     name='note[]'><?php echo $employee[$i]['note'];?></textarea></td>
-
                         </tr>
-                        <?php else:?>
-
-                        <input type="hidden" name="employee[]" value='<?php echo $employee[$i]['employee'];?>'>
-
-                        <input type="hidden" name="salary[]" id='salary--<?php echo $_id;?>' min='0' step='0'
-                            value='<?php echo $employee[$i]['salary'];?>' onblur="sum('<?php echo $_id;?>')">
-
-                        <input type="hidden" step="0" class="form-control" style="width:75px" min=0 name='discount[]'
-                            id='discount--<?php echo $_id;?>' onblur="sum('<?php echo $_id;?>')"
-                            value='<?php echo $employee[$i]['discount'];?>'>
-
-                        <input type="hidden" step="0" class="form-control" style="width:75px" min='0' name='advance[]'
-                            id='advance--<?php echo $_id;?>' onblur="sum('<?php echo $_id;?>')"
-                            value='<?php echo $employee[$i]['advance'];?>'>
-
-                        <input type="hidden" name='other_discount[]' id='other_discount--<?php echo $_id;?>'
-                            value='<?php echo (in_array($payroll_name, array('Oficial', 'Interna'), true) && isset($employee[$i]['other_discount'])) ? $employee[$i]['other_discount'] : 0;?>'>
-
-                        <input type="hidden" name='remuneration[]' id='remuneration--<?php echo $_id;?>'
-                            value='<?php echo $employee[$i]['remuneration'];?>'>
-
-                        <input type="hidden" class='total-' name="sub[]" id='subh--<?php echo $_id;?>'
-                            value='<?php echo $employee[$i]['sub'];?>'>
-
-                        <input type="hidden" name="payment_method[]" value="<?php echo htmlspecialchars($current_method, ENT_QUOTES, 'UTF-8'); ?>">
-
-                        <textarea rows="1" class="form-control" hidden
-                            name='note[]'><?php echo $employee[$i]['note'];?></textarea>
-                        <?php endif; ?>
                         <?php endfor;?>
                     </tbody>
-                    <input type="hidden" name="ttl-" id='ttl-' value='0'>
+                    <input type="hidden" name="ttl-" id='ttl-' value='<?php echo $row['total'];?>'>
                 </table>
             </div>
         </div>
@@ -245,9 +217,14 @@
 
 <script type="text/javascript">
 var moneda = '<?php echo $moneda; ?>';
+var employeeIds = <?php echo json_encode(array_values($employee_ids_js)); ?>;
 
 $('document').ready(function() {
-    sum();
+    if (employeeIds && employeeIds.length) {
+        for (var e = 0; e < employeeIds.length; e++) {
+            sum(employeeIds[e]);
+        }
+    }
 });
 
 function sum(i) {
