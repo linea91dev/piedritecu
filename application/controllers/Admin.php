@@ -5269,17 +5269,12 @@ echo $table;
         if ($param1 == 'inventario_mark')
         {
             $this->ver_permisos('reportes_productos');
-            $this->crud_model->downloadExcelInventario_Mark($param2);
+            $this->crud_model->downloadExcelInventario_Mark();
         }
         if ($param1 == 'productos')
         {
             $this->ver_permisos('reportes_productos');
             $this->crud_model->downloadExcelProductos();
-        }
-        if ($param1 == 'inventario_mark')
-        {
-            $this->ver_permisos('reportes_productos');
-            $this->crud_model->downloadExcelInventarioMark();
         }
         if ($param1 == 'cotizaciones')
         {

@@ -8854,113 +8854,121 @@ function new_change()
     }
     
     public function downloadExcelInventario_Mark()
-{
-    ini_set('memory_limit', '2G');
-    
-    // Validamos el branch_id para evitar el error SQL 1064
-    $branch_id = $this->input->post('branch_id');
-    if ($branch_id === null || $branch_id === '') {
-        $branch_id = 1; 
-    }
-
-    $objPHPExcel = new PHPExcel();
-    $objPHPExcel->setActiveSheetIndex(0);
-    $sheet = $objPHPExcel->getActiveSheet();
-
-    // Estilo para los separadores de marca
-    $styleMarca = array(
-        'font' => array('bold' => true, 'color' => array('rgb' => 'FFFFFF')),
-        'fill' => array('type' => PHPExcel_Style_Fill::FILL_SOLID, 'color' => array('rgb' => '2C3E50')),
-        'alignment' => array('horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER)
-    );
-
-    // Encabezados de columna
-    $sheet->setCellValue('A1', 'Codigo');
-    $sheet->setCellValue('B1', 'Producto');
-    
-    if($branch_id == 0){
-        $sheet->setCellValue('C1', 'En Bodega');
-    } else {
-        $branch_info = $this->db->get_where('branch', array('branch_id' => $branch_id))->row();
-        $sheet->setCellValue('C1', isset($branch_info) ? $branch_info->name : 'Sucursal');
-    }
-    
-    $sheet->setCellValue('D1', 'Costo');
-    $sheet->setCellValue('E1', 'Inversion');
-    $sheet->setCellValue('F1', 'AFECTO');
-
-    // --- CONSULTA CON JOIN A LA TABLA MARK ---
-    $sql = "SELECT 
-                p.products_id, 
-                p.name as producto_nombre, 
-                p.iva, 
-                p.code, 
-                p.cost, 
-                m.name as marca_nombre,
-                calcinvent(p.products_id, " . (int)$branch_id . ", p.id_prod_matriz, p.cnt_prod_matriz) as tienda 
-            FROM products p
-            LEFT JOIN mark m ON p.mark = m.mark_id
-            WHERE p.status = 1 AND p.presentation = 'Unidad' 
-            ORDER BY m.name ASC, p.name ASC";
-    
-    $query = $this->db->query($sql);
-
-    $fila = 2; 
-    $tt = 0;
-    $current_mark = "INICIO_LOOP"; 
-
-    foreach($query->result_array() as $row)
     {
-        // Verificar si cambió la marca para poner el encabezado de grupo
-        $marca_actual = ($row['marca_nombre'] == "") ? "SIN MARCA" : $row['marca_nombre'];
+        ini_set('memory_limit', '512M');
+        set_time_limit(120);
 
-        if ($current_mark !== $marca_actual) {
-            $current_mark = $marca_actual;
-            
-            // Fila decorativa de marca
-            $sheet->mergeCells("A$fila:F$fila");
-            $sheet->setCellValue("A$fila", "MARCA: " . strtoupper($current_mark));
-            $sheet->getStyle("A$fila:F$fila")->applyFromArray($styleMarca);
-            $fila++;
+        $branch_id = (int) $this->session->userdata('branch_id');
+        $mark_id = $this->input->post('mark_id');
+        if ($mark_id === null || $mark_id === '' || $mark_id === 'T') {
+            $mark_id = '';
+        } else {
+            $mark_id = (int) $mark_id;
         }
 
-        $iva = ($row['iva'] != 1) ? 'NO' : 'SI';
-        $inversion = $row['tienda'] * $row['cost'];
+        $tienda_label = 'En tienda';
+        if ($branch_id > 0) {
+            $branch_info = $this->db->select('name')->get_where('branch', array('branch_id' => $branch_id))->row();
+            if ($branch_info) {
+                $tienda_label = $branch_info->name;
+            }
+        }
 
-        $sheet->setCellValue('A'.$fila, $row['code']);
-        $sheet->setCellValue('B'.$fila, $row['producto_nombre']);
-        $sheet->setCellValue('C'.$fila, $row['tienda']);
-        $sheet->setCellValue('D'.$fila, $row['cost']);
-        $sheet->setCellValue('E'.$fila, $inversion);
-        $sheet->setCellValue('F'.$fila, $iva);
-        
-        $tt += $inversion;
+        $sql = "SELECT
+                    p.code,
+                    p.name AS producto_nombre,
+                    p.iva,
+                    p.cost,
+                    IFNULL(m.name, 'SIN MARCA') AS marca_nombre,
+                    calcinvent(p.products_id, {$branch_id}, p.id_prod_matriz, p.cnt_prod_matriz) AS tienda,
+                    calcinvent(p.products_id, 0, p.id_prod_matriz, p.cnt_prod_matriz) AS bodega
+                FROM products p
+                LEFT JOIN mark m ON p.mark = m.mark_id
+                WHERE p.status = 1
+                  AND p.presentation = 'Unidad'";
+        if ($mark_id !== '') {
+            $sql .= " AND p.mark = {$mark_id}";
+        }
+        $sql .= " ORDER BY marca_nombre ASC, p.name ASC";
+
+        $rows = $this->db->query($sql)->result_array();
+
+        $objPHPExcel = new PHPExcel();
+        $sheet = $objPHPExcel->setActiveSheetIndex(0);
+
+        $styleMarca = array(
+            'font' => array('bold' => true, 'color' => array('rgb' => 'FFFFFF')),
+            'fill' => array('type' => PHPExcel_Style_Fill::FILL_SOLID, 'color' => array('rgb' => '2C3E50')),
+            'alignment' => array('horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER)
+        );
+
+        $headers = array('Codigo', 'Producto', $tienda_label, 'En Bodega', 'Costo', 'Inversion', 'AFECTO');
+        $sheet->fromArray($headers, null, 'A1');
+
+        $fila = 2;
+        $tt = 0;
+        $current_mark = null;
+        $data_block = array();
+
+        foreach ($rows as $row) {
+            $marca_actual = $row['marca_nombre'] !== '' ? $row['marca_nombre'] : 'SIN MARCA';
+
+            if ($current_mark !== $marca_actual) {
+                if (!empty($data_block)) {
+                    $sheet->fromArray($data_block, null, 'A'.$fila);
+                    $fila += count($data_block);
+                    $data_block = array();
+                }
+                $current_mark = $marca_actual;
+                $sheet->mergeCells("A{$fila}:G{$fila}");
+                $sheet->setCellValue("A{$fila}", 'MARCA: '.strtoupper($current_mark));
+                $sheet->getStyle("A{$fila}:G{$fila}")->applyFromArray($styleMarca);
+                $fila++;
+            }
+
+            $tienda = (float) $row['tienda'];
+            $bodega = (float) $row['bodega'];
+            $cost = (float) $row['cost'];
+            $inversion = ($tienda + $bodega) * $cost;
+            $tt += $inversion;
+
+            $data_block[] = array(
+                $row['code'],
+                $row['producto_nombre'],
+                $tienda,
+                $bodega,
+                $cost,
+                $inversion,
+                ((int) $row['iva'] === 1) ? 'SI' : 'NO'
+            );
+        }
+
+        if (!empty($data_block)) {
+            $sheet->fromArray($data_block, null, 'A'.$fila);
+            $fila += count($data_block);
+        }
+
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
         $fila++;
+        $sheet->setCellValue('E'.$fila, 'TOTAL GENERAL:');
+        $sheet->setCellValue('F'.$fila, $tt);
+        $sheet->getStyle("E{$fila}:F{$fila}")->getFont()->setBold(true);
+        $sheet->setTitle('Inventario Marcas');
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="inventario_marcas_'.date('d-m-Y').'.xlsx"');
+        header('Cache-Control: max-age=0');
+
+        $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+        $objWriter->save('php://output');
+        exit;
     }
-
-    // Auto-ajustar ancho de columnas
-    foreach(range('A','F') as $col) {
-        $sheet->getColumnDimension($col)->setAutoSize(true);
-    }
-
-    // Fila de Total General
-    $fila++;
-    $sheet->setCellValue('D'.$fila, 'TOTAL GENERAL:');
-    $sheet->setCellValue('E'.$fila, $tt);
-    $sheet->getStyle("D$fila:E$fila")->getFont()->setBold(true);
-
-    $sheet->setTitle('Inventario Agrupado');
-
-    // Salida del archivo
-    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="inventario_marcas_'.date('d-m-Y').'.xlsx"');
-    header('Cache-Control: max-age=0');
-    
-    $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
-    ob_end_clean();
-    $objWriter->save('php://output');
-    exit;
-}
     public function downloadExcelProductos()
     {
         ini_set('memory_limit', '2G');
@@ -9017,60 +9025,8 @@ function new_change()
     
     public function downloadExcelInventarioMark()
     {
-        ini_set('memory_limit', '2G');
-        $mark      = $this->input->post('mark_id');
-        $branch_id = $this->session->userdata('branch_id');
-        $objPHPExcel    = new PHPExcel();
-        $objPHPExcel->setActiveSheetIndex(0);
-        
-        $objPHPExcel->getActiveSheet()->setCellValue('A1', 'Codigo');
-        $objPHPExcel->getActiveSheet()->setCellValue('B1', 'Producto');
-        if($branch_id == 0){
-            $objPHPExcel->getActiveSheet()->setCellValue('C1', 'En Bodega');
-        }
-        else{
-            $objPHPExcel->getActiveSheet()->setCellValue('C1', $this->db->get_where('branch', array('branch_id' => $branch_id))->row()->name);
-        }
-        $objPHPExcel->getActiveSheet()->setCellValue('D1', 'Costo');
-        $objPHPExcel->getActiveSheet()->setCellValue('E1', 'Precio');
-
-        foreach(range('A','E') as $columnID) {
-            $objPHPExcel->getActiveSheet()->getColumnDimension($columnID)->setAutoSize(true);
-        }
-
-        $a=2; $b=2; $c=2; $d=2; $e=2;
-        
-        $moneda     = $this->get_info("moneda");
-        
-            $query = $this->db->query('select products.products_id, products.name, products.code,products.cost,products.price, calcinvent(products.products_id, '.$branch_id.',products.id_prod_matriz, products.cnt_prod_matriz) as tienda from products where products.status = 1 and products.mark = '.$mark.' order by products.products_id desc;');
-        foreach($query->result_array() as $row)
-        {
-            $objPHPExcel->getActiveSheet()->setCellValue('A'.$a++, $row['code']);
-            $objPHPExcel->getActiveSheet()->setCellValue('B'.$b++, $row['name']);
-            $objPHPExcel->getActiveSheet()->setCellValue('C'.$c++, $row['tienda']);
-            $objPHPExcel->getActiveSheet()->setCellValue('D'.$d++, $row['cost']);
-            $objPHPExcel->getActiveSheet()->setCellValue('E'.$e++, $row['price']);
-            
-        }
-
-        $objPHPExcel->getActiveSheet()->setTitle('Inventario');
-    
-        header("Pragma: public");
-        header("Expires: 0");
-        header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
-        header("Content-Type: application/force-download");
-        header("Content-Type: application/octet-stream");
-        header("Content-Type: application/download");
-        header('Content-Type: application/vnd.ms-excel');
-        header('Content-Disposition: attachment;filename="inventario_Marca_'.date('d-m-y:h:i:s').'.xlsx"');
-        header("Content-Transfer-Encoding: binary ");
-        
-        $objWriter = new PHPExcel_Writer_Excel2007($objPHPExcel); 
-        ob_end_clean();
-        ob_start();
-        $objWriter->setOffice2003Compatibility(true);
-        $objWriter->save('php://output');
-        exit;
+        // Unificado con downloadExcelInventario_Mark (incluye existencia de bodega)
+        $this->downloadExcelInventario_Mark();
     }
     
     public function downloadExcelProveedores()

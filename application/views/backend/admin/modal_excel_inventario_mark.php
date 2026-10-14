@@ -6,10 +6,11 @@
                 <div class="col-sm-12">
                    <div class="form-group">
                         <label class="col-form-label">Seleccione una marca</label>
-                        <select class="form-control" name="mark_id" id="mark_id" onchange="this.form.submit()">
+                        <select class="form-control" name="mark_id" id="mark_id_excel">
+                            <option value="T">Todas</option>
                             <?php $marks = $this->crud_model->get_mark();
                                 foreach($marks->result_array() as $mk):?>
-                            <option value="<?php echo $mk['mark_id'];?>" <?php if($mk['mark_id'] == $mark_id) echo "selected";?>><?php echo $mk['name'];?></option>
+                            <option value="<?php echo $mk['mark_id'];?>"><?php echo $mk['name'];?></option>
                             <?php endforeach;?>
                         </select>
                     </div>
