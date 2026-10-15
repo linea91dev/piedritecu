@@ -2090,10 +2090,142 @@ class Tables_model extends CI_Model
         $query = $this->db->get();  
         return $query->num_rows();  
     }
-    
 
+    function get_returns($param1, $param2)
+    {
+        $moneda = $this->crud_model->get_info("moneda");
+        $fetch_data = $this->make_returns_datatables($param1, $param2);
+        $data = array();
+        $n = 1;
+        foreach($fetch_data as $row)
+        {
+            $sub_array = array();
+            $sub_array[] = $n++;
+            $sub_array[] = $row->code;
+            $sub_array[] = date("d/m/Y h:i a", strtotime($row->datetime));
+            $destino = ((int) $row->branch_id === 0)
+                ? '<span class="label label-lg font-weight-bold label-light-warning label-inline">Bodega</span>'
+                : '<span class="label label-lg font-weight-bold label-light-info label-inline">Tienda</span>';
+            $sub_array[] = $destino;
+            $sub_array[] = $this->crud_model->getName("admin", $row->responsable);
+            $sub_array[] = $moneda.number_format($row->loss,2,'.',',');
+            $sub_array[] = '
+                        <a href="'.base_url().'admin/devolucion_detalles/'.$row->code.'" data-toggle="tooltip" data-original-title="Movimiento del producto" class="btn btn-icon btn-bg-light btn-active-color-info btn-sm">
+                            <span class="svg-icon svg-icon-primary svg-icon-2x">
+                                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                                        <rect x="0" y="0" width="24" height="24"></rect>
+                                        <path d="M8,3 L8,3.5 C8,4.32842712 8.67157288,5 9.5,5 L14.5,5 C15.3284271,5 16,4.32842712 16,3.5 L16,3 L18,3 C19.1045695,3 20,3.8954305 20,5 L20,21 C20,22.1045695 19.1045695,23 18,23 L6,23 C4.8954305,23 4,22.1045695 4,21 L4,5 C4,3.8954305 4.8954305,3 6,3 L8,3 Z" fill="#000000" opacity="0.3">
+                                        </path>
+                                        <path d="M11,2 C11,1.44771525 11.4477153,1 12,1 C12.5522847,1 13,1.44771525 13,2 L14.5,2 C14.7761424,2 15,2.22385763 15,2.5 L15,3.5 C15,3.77614237 14.7761424,4 14.5,4 L9.5,4 C9.22385763,4 9,3.77614237 9,3.5 L9,2.5 C9,2.22385763 9.22385763,2 9.5,2 L11,2 Z" fill="#000000"></path>
+                                        <rect fill="#000000" opacity="0.3" x="10" y="9" width="7" height="2" rx="1"></rect>
+                                        <rect fill="#000000" opacity="0.3" x="7" y="9" width="2" height="2" rx="1"></rect>
+                                        <rect fill="#000000" opacity="0.3" x="7" y="13" width="2" height="2" rx="1"></rect>
+                                        <rect fill="#000000" opacity="0.3" x="10" y="13" width="7" height="2" rx="1"></rect>
+                                        <rect fill="#000000" opacity="0.3" x="7" y="17" width="2" height="2" rx="1"></rect>
+                                        <rect fill="#000000" opacity="0.3" x="10" y="17" width="7" height="2" rx="1"></rect>
+                                    </g>
+                                </svg>
+                            </span>
+                        </a>&nbsp;
+                        <a href="'.base_url().'admin/export_pdf/devoluciones_detalles/'.$row->losse_returns_id.'"
+                            class="btn btn-icon btn-bg-light btn-active-color-info btn-sm"
+                            data-toggle="tooltip" title="" data-original-title="Imprimir">
+                            <span class="svg-icon svg-icon-primary svg-icon-2x">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    xmlns:xlink="http://www.w3.org/1999/xlink" width="24px"
+                                    height="24px" viewBox="0 0 24 24" version="1.1">
+                                    <g stroke="none" stroke-width="1" fill="none"
+                                        fill-rule="evenodd">
+                                        <rect x="0" y="0" width="24" height="24" />
+                                        <path
+                                            d="M16,17 L16,21 C16,21.5522847 15.5522847,22 15,22 L9,22 C8.44771525,22 8,21.5522847 8,21 L8,17 L5,17 C3.8954305,17 3,16.1045695 3,15 L3,8 C3,6.8954305 3.8954305,6 5,6 L19,6 C20.1045695,6 21,6.8954305 21,8 L21,15 C21,16.1045695 20.1045695,17 19,17 L16,17 Z M17.5,11 C18.3284271,11 19,10.3284271 19,9.5 C19,8.67157288 18.3284271,8 17.5,8 C16.6715729,8 16,8.67157288 16,9.5 C16,10.3284271 16.6715729,11 17.5,11 Z M10,14 L10,20 L14,20 L14,14 L10,14 Z"
+                                            fill="#000000" />
+                                        <rect fill="#000000" opacity="0.3" x="8" y="2" width="8"
+                                            height="2" rx="1" />
+                                    </g>
+                                </svg>
+                            </span>
+                        </a>
+                    ';
 
+            $data[] = $sub_array;
+        }
 
+        $output = array(
+            "draw"                      =>      intval($_POST["draw"]),
+            "recordsTotal"              =>      $this->get_all_returns_data($param1, $param2),
+            "recordsFiltered"           =>      $this->get_filtered_returns_data($param1, $param2),
+            "data"                      =>      $data
+        );
+
+        echo json_encode($output);
+    }
+
+    function make_returns_datatables($param1, $param2)
+    {
+        $this->make_returns_query($param1, $param2);
+        if($_POST["length"] != -1)
+        {
+            $this->db->limit($_POST['length'], $_POST['start']);
+        }
+        $query = $this->db->get();
+        return $query->result();
+    }
+
+    function make_returns_query($param1, $param2)
+    {
+        $branch_id = $this->session->userdata('branch_id');
+        $this->db->select('*');
+        $this->db->from('losse_returns');
+        $this->db->group_start();
+        $this->db->where('branch_id', $branch_id);
+        $this->db->or_where('branch_id', 0);
+        $this->db->group_end();
+        $this->db->where('status', 1);
+        $this->db->where('concept', 'Devolución');
+        $this->db->where("DATE(datetime) >= DATE('$param1')", NULL, FALSE);
+        $this->db->where("DATE(datetime) <= DATE('$param2')", NULL, FALSE);
+
+        if($_POST["search"]["value"] != '')
+        {
+            $this->db->like("code", $_POST["search"]["value"]);
+        }
+
+        $this->db->order_by('datetime', 'DESC');
+
+        if(isset($_POST["order"]))
+        {
+            $this->db->order_by($this->order_column[$_POST['order']['0']['column']], $_POST['order']['0']['dir']);
+        }
+        else
+        {
+            $this->db->order_by('losse_returns_id', 'DESC');
+        }
+    }
+
+    function get_all_returns_data($param1, $param2)
+    {
+        $branch_id = $this->session->userdata('branch_id');
+        $this->db->select('*');
+        $this->db->from('losse_returns');
+        $this->db->group_start();
+        $this->db->where('branch_id', $branch_id);
+        $this->db->or_where('branch_id', 0);
+        $this->db->group_end();
+        $this->db->where('status', 1);
+        $this->db->where('concept', 'Devolución');
+        $this->db->where("DATE(datetime) >= DATE('$param1')", NULL, FALSE);
+        $this->db->where("DATE(datetime) <= DATE('$param2')", NULL, FALSE);
+        return $this->db->count_all_results();
+    }
+
+    function get_filtered_returns_data($param1, $param2)
+    {
+        $this->make_returns_query($param1, $param2);
+        $query = $this->db->get();
+        return $query->num_rows();
+    }
 
     function get_vencidos($param1, $param2)
     {

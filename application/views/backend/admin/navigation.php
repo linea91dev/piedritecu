@@ -90,7 +90,7 @@
                             </div>
                         </li>
                         <?php endif; if($user_type == 1 || $permisos['productos'] == 1 ):?>
-                        <li class="menu-item menu-item-submenu menu-item-rel <?php if($page_name == 'producto_detalle' ||$page_name == 'inventario' || $page_name == 'nuevo_producto'  || $page_name == 'producto_edit' || $page_name == 'traslados' || $page_name == 'traslados2' || $page_name == 'categorias' || $page_name == 'marcas' || $page_name == 'marcas' || $page_name == 'inventario_marca' || $page_name == 'increases' || $page_name == 'producto_traslado' || $page_name == 'perdidas' || $page_name == 'registrar_perdida' || $page_name == 'productos_vencidos') echo 'menu-item-active';?>" data-menu-toggle="click" aria-haspopup="true">
+                        <li class="menu-item menu-item-submenu menu-item-rel <?php if($page_name == 'producto_detalle' ||$page_name == 'inventario' || $page_name == 'nuevo_producto'  || $page_name == 'producto_edit' || $page_name == 'traslados' || $page_name == 'traslados2' || $page_name == 'categorias' || $page_name == 'marcas' || $page_name == 'marcas' || $page_name == 'inventario_marca' || $page_name == 'increases' || $page_name == 'producto_traslado' || $page_name == 'perdidas' || $page_name == 'registrar_perdida' || $page_name == 'devoluciones' || $page_name == 'registrar_devolucion' || $page_name == 'devolucion_detalles' || $page_name == 'productos_vencidos') echo 'menu-item-active';?>" data-menu-toggle="click" aria-haspopup="true">
                             <a href="javascript:;" class="menu-link menu-toggle">
                                 <span class="menu-text">Productos</span>
                                 <span class="menu-desc"></span>
@@ -132,6 +132,15 @@
                                                 <i class="flaticon2-open-box"></i>
                                             </span>
                                             <span class="menu-text">Pérdidas registradas</span>
+                                        </a>
+                                    </li>
+                                    <?php endif; if($user_type == 1):?>
+                                    <li class="menu-item menu-item-submenu" data-menu-toggle="hover" aria-haspopup="true">
+                                        <a href="<?php echo base_url();?>admin/devoluciones/" class="menu-link">
+                                            <span class="svg-icon menu-icon">
+                                                <i class="flaticon2-open-box"></i>
+                                            </span>
+                                            <span class="menu-text">Devoluciones registradas</span>
                                         </a>
                                     </li>
                                     <?php endif; if($user_type == 1):?>

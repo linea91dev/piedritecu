@@ -7165,62 +7165,63 @@ function new_change()
     }*/
     
     function devolucion_producto($product_id)
-        {
-            $branch_id   = $this->session->userdata('branch_id');
-            $datetime    = date('Y-m-d H:i:s');
-            $code_dev = $this->input->post('code');
-            $detalle_id  = $this->input->post('product_details_id');
-            $amount_orig = $this->input->post('amount_orig');
-            $cost_orig   = $this->input->post('cost_orig');
-            $amount_dev  = $this->input->post('amount_dev');
-            $cost_dev    = $this->input->post('cost_dev');
-            $sub_dev     = $this->input->post('sub_dev');
-            $dif         = $this->input->post('dif');
-            $concepto    = $this->input->post('concepto_dif');
-    
-            $producto = $this->db->get_where('products', array('products_id'=>$product_id))->row_array();
-            $num_lotes = sizeof($detalle_id);
-            $lotes = array();
-            $count = 0;
-            for ($i=0; $i < $num_lotes ; $i++) { 
-                $lote = $this->db->get_where('lotes', array('lote_id'=>$detalle_id[$i]))->row();
-                $new_products = array('product' => $product_id, 'detail_id' => $detalle_id[$i], 'amount' => $amount_dev[$i], 'price' => $cost_dev[$i], 'sub'=>$sub_dev[$i], 'dif'=>$dif[$i], 'concepto'=>$concepto[$i]);
-                array_push($lotes, $new_products);
-                if ($amount_dev[$i] != "" || $amount_dev[$i] != null || $amount_dev[$i] > 0) {
-    
-                    $data['date']         = date('Y-m-d');
-                    $data['products_id']  = $product_id;
-                    $data['branch_id']    = $branch_id;
-                    $data['user_id']      = $this->session->userdata('login_user_id');
-                    $data['type']         = 3;
-                    $data['provider']     = $producto['provider'];
-                    $data['amount']       = $amount_dev[$i];
-                    $data['cost']         = $cost_orig[$i];
-                    $data['activity_ref'] = $code_dev;
-                    $data['description']  = 'Devolución';
-                    $this->db->insert('product_details', $data); 
-                    $message = 'Ha devuelto el producto '.$producto['name'].' con id de lote: '.$detalle_id[$i];
-                    $this->insert_binnacle($message);
-                    $this->insert_notification($message, base64_encode('admin/inventario/'), 'inventario', 'Inventario_devolucion');
-                    $count++;
-                    
-                   /* $lot_det['lote_id'] = $detalle_id[$i];
-                    $lot_det['code'] = $code_dev;
-                    $lot_det['cantidad'] = $amount_dev[$i];
-                    $lot_det['date'] = Date('Y-m-d');
-                    $this->db->insert('lote_detail', $lot_det); 
-                    
-                    $dat_lot['existencia'] = ($lote->existencia - $amount_dev[$i]);
-                    $this->db->where('lote_id', $lote->lote_id);
-                    $this->db->update('lotes', $dat_lot);*/
-                    
-                }
+    {
+        $branch_id   = $this->session->userdata('branch_id');
+        $datetime    = date('Y-m-d H:i:s');
+        $code_dev    = $this->input->post('code');
+        $detalle_id  = $this->input->post('product_details_id');
+        $amount_orig = $this->input->post('amount_orig');
+        $cost_orig   = $this->input->post('cost_orig');
+        $amount_dev  = $this->input->post('amount_dev');
+        $cost_dev    = $this->input->post('cost_dev');
+        $sub_dev     = $this->input->post('sub_dev');
+        $dif         = $this->input->post('dif');
+        $concepto    = $this->input->post('concepto_dif');
+
+        $producto = $this->db->get_where('products', array('products_id'=>$product_id))->row_array();
+        $num_lotes = is_array($detalle_id) ? sizeof($detalle_id) : 0;
+        $lotes = array();
+        $count = 0;
+        for ($i=0; $i < $num_lotes ; $i++) {
+            $qty = isset($amount_dev[$i]) ? floatval($amount_dev[$i]) : 0;
+            $new_products = array(
+                'product' => $product_id,
+                'detail_id' => $detalle_id[$i],
+                'amount' => $qty,
+                'price' => $cost_dev[$i],
+                'sub' => $sub_dev[$i],
+                'dif' => $dif[$i],
+                'concepto' => $concepto[$i]
+            );
+            array_push($lotes, $new_products);
+            if ($qty > 0) {
+                $data['date']         = date('Y-m-d');
+                $data['code']         = $code_dev;
+                $data['products_id']  = $product_id;
+                $data['branch_id']    = $branch_id;
+                $data['user_id']      = $this->session->userdata('login_user_id');
+                $data['type']         = 3;
+                $data['provider']     = $producto['provider'];
+                $data['amount']       = $qty;
+                $data['cost']         = $cost_orig[$i];
+                $data['price']        = $cost_dev[$i];
+                $data['activity_ref'] = $detalle_id[$i];
+                $data['description']  = 'Devolución';
+                $data['status']       = 1;
+                $this->db->insert('product_details', $data);
+                $this->alerta_stock($product_id);
+                $message = 'Ha devuelto el producto '.$producto['name'].' con id de lote: '.$detalle_id[$i];
+                $this->insert_binnacle($message);
+                $this->insert_notification($message, base64_encode('admin/inventario/'), 'inventario', 'Inventario_devolucion');
+                $count++;
             }
-    
-            $dat2['code']        = $this->input->post('code');
+        }
+
+        if ($count > 0) {
+            $dat2['code']        = $code_dev;
             $dat2['branch_id']   = $branch_id;
             $dat2['datetime']    = $datetime;
-            $dat2['date']        = date("Y-m-d", strtotime($this->input->post('date')));
+            $dat2['date']        = $this->input->post('date') ? date("Y-m-d", strtotime($this->input->post('date'))) : date('Y-m-d');
             $dat2['week']        = date('W');
             $dat2['month']       = date('m');
             $dat2['year']        = date('Y');
@@ -7231,9 +7232,92 @@ function new_change()
             $dat2['loss']        = $this->input->post('perdida');
             $dat2['type']        = 1;
             $dat2['concept']     = 'Devolución';
+            $dat2['status']      = 1;
             $dat2['responsable'] = $this->session->userdata('login_user_id');
             $this->db->insert('losse_returns', $dat2);
         }
+    }
+
+    function record_devolucion() {
+        $branch_id   = $this->input->post('branch');
+        $datetime    = date('Y-m-d H:i:s');
+        $code_dev    = $this->input->post('code');
+
+        $product_id = $this->input->post('product');
+        $cost       = $this->input->post('cost');
+        $amount     = $this->input->post('amount');
+        $sub        = $this->input->post('sub');
+
+        if (!is_array($product_id) || sizeof($product_id) == 0) {
+            return;
+        }
+
+        $num_lotes = sizeof($product_id);
+        $producto = array();
+
+        for ($i=0; $i < $num_lotes ; $i++) {
+            $producto_indi =  $this->db->get_where('products',array('products_id '=>$product_id[$i]))->row();
+            if (!$producto_indi) continue;
+            $iva = 0;
+            if (!$producto_indi->iva) $iva = 0;
+            else $iva = 1;
+            $new_producto = array('product'=>$product_id[$i], 'amount'=>$amount[$i], 'price'=>$cost[$i], 'perdida'=>$sub[$i], 'iva'=>$iva);
+            array_push($producto, $new_producto);
+
+            $products_id_2 = 0; $cost2 = $cost[$i];
+            if($producto_indi->presentation == 'Caja') {
+                $products_id_2 = $product_id[$i];
+                $id_produ = $producto_indi->id_prod_matriz;
+                $amount2  = $amount[$i]*$producto_indi->cnt_prod_matriz;
+                if($producto_indi->cnt_prod_matriz > 0) $cost2 = $cost[$i] / $producto_indi->cnt_prod_matriz;
+            } else {
+                $id_produ = $product_id[$i];
+                $amount2  = $amount[$i];
+            }
+
+            $dat2['date']          = date('Y-m-d');
+            $dat2['code']          = $code_dev;
+            $dat2['products_id']   = $id_produ;
+            $dat2['user_id']       = $this->session->userdata('login_user_id');
+            $dat2['type']          = 3;
+            $dat2['branch_id']     = $branch_id;
+            $dat2['amount']        = $amount2;
+            $dat2['provider']      = $producto_indi->provider;
+            $dat2['cost']          = $cost2;
+            $dat2['price']         = $cost2;
+            $dat2['description']   = "Devolución";
+            $dat2['activity_ref']  = $code_dev;
+            $dat2['products_id_2'] = $products_id_2;
+            $dat2['iva']           = $iva;
+            $dat2['status']        = 1;
+            $this->db->insert('product_details', $dat2);
+
+            $this->alerta_stock($id_produ);
+
+            $name = $producto_indi->name;
+            $message = 'Registro como devolución '.$name.', ID: '.$product_id[$i].', Código: '.$code_dev;
+            $this->insert_binnacle($message);
+            $this->insert_notification($message, base64_encode('admin/inventario/'), 'inventario', 'Inventario_devolucion');
+        }
+
+        $data['code']        = $code_dev;
+        $data['concept']     = 'Devolución';
+        $data['origin']      = trim($this->input->post('concept'));
+        $data['branch_id']   = $branch_id;
+        $data['datetime']    = $datetime;
+        $data['date']        = $this->input->post('date') ? date("Y-m-d", strtotime($this->input->post('date'))) : date('Y-m-d');
+        $data['week']        = date('W');
+        $data['month']       = date('m');
+        $data['year']        = date('Y');
+        $data['num_lotes']   = $num_lotes;
+        $data['lotes']       = json_encode($producto);
+        $data['loss']        = $this->input->post('ttl');
+        $data['total']       = $this->input->post('ttl');
+        $data['type']        = 1;
+        $data['status']      = 1;
+        $data['responsable'] = $this->session->userdata('login_user_id');
+        $this->db->insert('losse_returns', $data);
+    }
     function perdida_producto($product_id)
     {
         $branch_id   = $this->input->post('branch');
@@ -11811,6 +11895,90 @@ function new_change()
         $mpdf->Output($pdfFilePath, "I");  
     }
 
+    public function downloadPDFDevolucionDetails($losse_return_id)
+    {
+        $data = array(
+            'losse_return_id' => $losse_return_id
+        );
+        $html = $this->load->view('backend/viewspdf/devolucion_detalles.php',$data,TRUE);
+        $pdfFilePath = "reporte_devolucion_details-".date('d/m/Y H:i:s').".pdf";
+        $this->load->library('M_pdf');
+        $mpdf = new mPDF('utf-8','A4');
+        $mpdf->packTableData = true;
+        $mpdf->WriteHTML($html,2);
+        $mpdf->Output($pdfFilePath, "I");
+    }
+
+    public function downloadExcelDevolucionDetallesFechas($initial, $final)
+    {
+        PHPExcel_Cell::setValueBinder(new PHPExcel_Cell_AdvancedValueBinder());
+
+        $objPHPExcel = new PHPExcel();
+        $objPHPExcel->setActiveSheetIndex(0);
+        $objPHPExcel->getActiveSheet()->setCellValue('A1', '#');
+        $objPHPExcel->getActiveSheet()->setCellValue('B1', 'Transacción');
+        $objPHPExcel->getActiveSheet()->setCellValue('C1', 'Fecha');
+        $objPHPExcel->getActiveSheet()->setCellValue('D1', 'Código');
+        $objPHPExcel->getActiveSheet()->setCellValue('E1', 'Producto');
+        $objPHPExcel->getActiveSheet()->setCellValue('F1', 'Unidades');
+        $objPHPExcel->getActiveSheet()->setCellValue('G1', 'Costo');
+        $objPHPExcel->getActiveSheet()->setCellValue('H1', 'Total');
+
+        foreach(range('A','H') as $columnID) {
+            $objPHPExcel->getActiveSheet()->getColumnDimension($columnID)->setAutoSize(true);
+        }
+
+        $a = 2; $b =2; $c =2; $d =2; $e =2; $f =2; $g =2;$h =2;
+        $moneda = $this->get_info("moneda"); $cont = 1; $total = 0;
+
+        $query = $this->get_returns_products($initial, $final);
+        foreach($query->result_array() as $data)
+        {
+            $rows = json_decode($data['lotes'], true); $sub = 0;
+            if (!is_array($rows)) continue;
+            foreach($rows as $row){
+                $sub = 0;
+                if ($row['amount'] > 0) {
+                    $prod = $this->db->get_where('products', array('products_id'=>$row['product']))->row_array();
+                    $sub = $row['amount']*$row['price'];
+                    $objPHPExcel->getActiveSheet()->setCellValue('A'.$a++, $cont++);
+                    $objPHPExcel->getActiveSheet()->setCellValue('B'.$b++, $data['code']);
+                    $objPHPExcel->getActiveSheet()->setCellValue('C'.$c++, date("d/m/Y", strtotime($data['datetime'])));
+                    $objPHPExcel->getActiveSheet()->setCellValue('D'.$d++, $prod['code']);
+                    $objPHPExcel->getActiveSheet()->setCellValue('E'.$e++, $prod['name']);
+                    $objPHPExcel->getActiveSheet()->setCellValue('F'.$f++, $row['amount']);
+                    $objPHPExcel->getActiveSheet()->setCellValue('G'.$g++, $moneda.$row['price']);
+                    $objPHPExcel->getActiveSheet()->setCellValue('H'.$h++, $moneda.number_format($sub,2,'.',','));
+                    $total += $sub;
+                }
+            }
+        }
+
+        $objPHPExcel->getActiveSheet()->setCellValue('A'.$a++, '');
+        $objPHPExcel->getActiveSheet()->setCellValue('B'.$b++, '');
+        $objPHPExcel->getActiveSheet()->setCellValue('C'.$c++, '');
+        $objPHPExcel->getActiveSheet()->setCellValue('D'.$d++, '');
+        $objPHPExcel->getActiveSheet()->setCellValue('E'.$e++, '');
+        $objPHPExcel->getActiveSheet()->setCellValue('F'.$f++, '');
+        $objPHPExcel->getActiveSheet()->setCellValue('G'.$g++, 'TOTAL');
+        $objPHPExcel->getActiveSheet()->setCellValue('H'.$h++, $moneda.number_format($total,2,'.',','));
+
+        $objPHPExcel->getActiveSheet()->setTitle('Devoluciones');
+
+        header("Pragma: public");
+        header("Expires: 0");
+        header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+        header("Content-Type: application/force-download");
+        header("Content-Type: application/octet-stream");
+        header("Content-Type: application/download");
+        header('Content-Type: application/vnd.ms-excel');
+        header('Content-Disposition: attachment;filename="devoluciones_detalles_'.date('d-m-y:h:i:s').'.xlsx"');
+        header("Content-Transfer-Encoding: binary ");
+        $objWriter = new PHPExcel_Writer_Excel2007($objPHPExcel);
+        $objWriter->setOffice2003Compatibility(true);
+        $objWriter->save('php://output');
+    }
+
     /* end pdf */
     
     function get_increases($initial,$final) {
@@ -11836,6 +12004,16 @@ function new_change()
     function get_losses_total($initial, $final) {
         $branch_id = $this->session->userdata('branch_id');
         return $this->db->query("SELECT SUM(loss) AS total FROM losse_returns WHERE (branch_id = '$branch_id' OR branch_id = 0) AND status = 1 AND concept != 'Devolución' AND (concept = 'Pérdida' OR type = 2) AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final')")->row()->total;
+    }
+
+    function get_returns_products($initial, $final) {
+        $branch_id = $this->session->userdata('branch_id');
+        return $this->db->query("SELECT * FROM losse_returns WHERE (branch_id = '$branch_id' OR branch_id = 0) AND status = 1 AND concept = 'Devolución' AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final')");
+    }
+
+    function get_returns_total($initial, $final) {
+        $branch_id = $this->session->userdata('branch_id');
+        return $this->db->query("SELECT SUM(loss) AS total FROM losse_returns WHERE (branch_id = '$branch_id' OR branch_id = 0) AND status = 1 AND concept = 'Devolución' AND DATE(datetime) >= DATE('$initial') AND DATE(datetime) <= DATE('$final')")->row()->total;
     }
     
     function get_expired_products() {

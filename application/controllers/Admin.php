@@ -554,7 +554,7 @@ class Admin extends CI_Controller
 
             $this->crud_model->devolucion_producto($param2);
             $this->session->set_flashdata('flash_message' , "Producto devuelto registrado.");
-            redirect(base_url() . 'admin/producto_detalle/'.$param2, 'refresh');
+            redirect(base_url() . 'admin/devoluciones/', 'refresh');
         }
         if ($param1 == 'perdida') {
             $this->ver_permisos('editar_productos');
@@ -1146,6 +1146,24 @@ class Admin extends CI_Controller
         $this->ver_permisos('crear_productos');
         $this->crud_model->record_loss();
         redirect(base_url().'admin/perdidas/', 'refresh');
+    }
+
+    function registrar_devolucion()
+    {
+        $this->admin_login();
+        $this->ver_permisos('crear_productos');
+
+        $page_data['code']       = $this->crud_model->getCodeDevolucion();
+        $page_data['page_name']  = 'registrar_devolucion';
+        $page_data['page_title'] = "Registro de devolución";
+        $this->load->view('backend/index', $page_data);
+    }
+
+    function record_devolucion(){
+        $this->admin_login();
+        $this->ver_permisos('crear_productos');
+        $this->crud_model->record_devolucion();
+        redirect(base_url().'admin/devoluciones/', 'refresh');
     }
     
     function nueva_compra()
@@ -3260,6 +3278,42 @@ class Admin extends CI_Controller
 
         $page_data['page_name']  = 'perdida_detalles';
         $page_data['page_title'] = "Detalles de pérdida";
+        $this->load->view('backend/index', $page_data);
+    }
+
+    function devoluciones()
+    {
+        $this->admin_login();
+        if ($this->session->userdata('login_user_type') == 2) {
+            redirect(base_url(), 'refresh');
+        }
+
+        $initial = $this->input->post('initial');
+        $final   = $this->input->post('final');
+        if ($initial == '') $initial = date("Y-m-01");
+        if ($final == '') $final = date("Y-m-t");
+
+        $page_data['page_name']  = 'devoluciones';
+        $page_data['page_title'] = "Devoluciones";
+        $page_data['initial']    = $initial;
+        $page_data['final']      = $final;
+        $this->load->view('backend/index', $page_data);
+    }
+
+    function devolucion_detalles($param1 = '')
+    {
+        $this->admin_login();
+        if ($this->session->userdata('login_user_type') == 2) {
+            redirect(base_url(), 'refresh');
+        }
+
+        if($this->input->post('code') == "")
+            $page_data['code'] = $param1;
+        else
+            $page_data['code'] = $this->input->post('code');
+
+        $page_data['page_name']  = 'devolucion_detalles';
+        $page_data['page_title'] = "Detalles de devolución";
         $this->load->view('backend/index', $page_data);
     }
 
@@ -5381,6 +5435,11 @@ echo $table;
             $this->ver_permisos('reportes_productos');
             $this->crud_model->downloadExcelPerdidaDetallesFechas($param2, $param3);
         }
+        if ($param1 == 'devoluciones_detalles_fechas')
+        {
+            $this->ver_permisos('reportes_productos');
+            $this->crud_model->downloadExcelDevolucionDetallesFechas($param2, $param3);
+        }
         if ($param1 == 'productos_vencidos')
         {
             $this->ver_permisos('reportes_productos');
@@ -5611,6 +5670,11 @@ echo $table;
         {
             $this->ver_permisos('reportes_productos');
             $this->crud_model->downloadPDFLosseDateDetails($param2, $param3);
+        }
+        if ($param1 == 'devoluciones_detalles')
+        {
+            $this->ver_permisos('reportes_productos');
+            $this->crud_model->downloadPDFDevolucionDetails($param2);
         }
         if ($param1 == 'recibo_venta')
         {
@@ -10188,6 +10252,18 @@ if($currentTime <= json_decode($payload)->exp){
                 else
                 {
                     return $this->tables_model->get_losses($param1, $param2);    
+                }
+            }
+
+            function get_devoluciones($param1, $param2)
+            {
+                if ($this->session->userdata('admin_login') != 1)
+                {
+                    return array('message' => 'error');
+                }
+                else
+                {
+                    return $this->tables_model->get_returns($param1, $param2);
                 }
             }
             
