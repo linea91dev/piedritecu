@@ -3497,6 +3497,185 @@ class Crud_model extends CI_Model {
         }
     }
 
+    function create_sale_ajuste($code, $user_sale = '')
+    {
+        $name_res = trim((string)$this->input->post('responsable'));
+        $responsable = $this->session->userdata('login_user_id');
+        if ($name_res == '') $name_res = $this->getName('admin', $responsable);
+
+        $data['responsable'] = $responsable;
+        $data['name_res']    = $name_res;
+        $data['branch_id']   = $this->session->userdata('branch_id');
+        $data['code']        = $code;
+        $data['sala']        = 0;
+        $data['day']         = date('d');
+        $data['week']        = date('W');
+        $data['month']       = date('m');
+        $data['year']        = date('Y');
+        $fecha_post = $this->input->post('fecha');
+        $data['date']        = $fecha_post ? date('Y-m-d', strtotime($fecha_post)) : date('Y-m-d');
+        $data['time']        = date('H:i:s');
+
+        if ($user_sale != '') {
+            $data['user_sale'] = $user_sale;
+        }
+
+        $client_id = $this->input->post('client_id');
+        $products  = $this->input->post('product');
+        $amount    = $this->input->post('amount');
+        $price     = $this->input->post('price');
+        $discount  = $this->input->post('discount');
+        $sub       = $this->input->post('sub');
+
+        if (!is_array($products) || sizeof($products) == 0) {
+            return false;
+        }
+
+        $cliente = null;
+        $cliente_type = 2;
+        if ($client_id > 0) {
+            $cliente = $this->db->get_where('client', array('client_id' => $client_id))->row();
+            if ($cliente) $cliente_type = $cliente->type;
+        }
+        $data['my'] = $cliente_type;
+
+        $producto = array();
+        $num_products = 0;
+
+        for ($i = 0; $i < sizeof($products); $i++) {
+            $qty = isset($amount[$i]) ? floatval($amount[$i]) : 0;
+            if ($qty <= 0 || $products[$i] == '') continue;
+
+            $producto_indi = $this->db->get_where('products', array('products_id' => $products[$i]))->row();
+            if (!$producto_indi) continue;
+
+            $iva = $producto_indi->iva ? 1 : 0;
+            $price_i = isset($price[$i]) ? $price[$i] : 0;
+            $discount_i = isset($discount[$i]) ? $discount[$i] : 0;
+            $sub_i = isset($sub[$i]) ? $sub[$i] : ($qty * $price_i);
+
+            $new_producto = array(
+                'product' => $products[$i],
+                'amount' => $qty,
+                'price' => $price_i,
+                'cost' => $producto_indi->cost,
+                'price_my' => $producto_indi->precio_mayorista,
+                'price_farma' => $producto_indi->farma,
+                'price_ferretero' => isset($producto_indi->precio_ferretero) ? $producto_indi->precio_ferretero : 0,
+                'discount' => $discount_i,
+                'flete' => 0,
+                'sub' => $sub_i,
+                'sub_my' => $qty * $producto_indi->precio_mayorista,
+                'sub_farma' => $qty * $producto_indi->farma,
+                'sub_ferretero' => $qty * (isset($producto_indi->precio_ferretero) ? $producto_indi->precio_ferretero : 0),
+                'iva' => $iva
+            );
+            array_push($producto, $new_producto);
+            $num_products++;
+
+            $products_id_2 = 0;
+            $cost2 = $this->last_cost($products[$i], 0);
+            if ($cost2 === null || $cost2 === '') $cost2 = $producto_indi->cost;
+
+            if ($producto_indi->presentation == 'Caja') {
+                $products_id_2 = $products[$i];
+                $id_produ = $producto_indi->id_prod_matriz;
+                $amount2 = $qty * $producto_indi->cnt_prod_matriz;
+                if ($producto_indi->cnt_prod_matriz > 0) $cost2 = $cost2 / $producto_indi->cnt_prod_matriz;
+            } else {
+                $id_produ = $products[$i];
+                $amount2 = $qty;
+            }
+
+            $lotes = $this->db->order_by('lote_id', 'ASC')->get_where('lotes', array('id_producto' => $id_produ, 'branch_id' => 0, 'existencia >' => 0))->result_array();
+            $lote = !empty($lotes) ? $lotes[0] : array('code' => '');
+
+            $dat2 = array();
+            $dat2['price']         = $sub_i;
+            $dat2['date']          = $data['date'];
+            $dat2['code']          = isset($lote['code']) ? $lote['code'] : '';
+            $dat2['products_id']   = $id_produ;
+            $dat2['user_id']       = $responsable;
+            $dat2['type']          = 0;
+            $dat2['branch_id']     = 0;
+            $dat2['amount']        = $amount2;
+            $dat2['provider']      = $producto_indi->provider;
+            $dat2['cost']          = $cost2;
+            $dat2['description']   = 'Ajuste inventario';
+            $dat2['activity_ref']  = $code;
+            $dat2['products_id_2'] = $products_id_2;
+            $dat2['iva']           = $iva;
+            $dat2['status']        = 1;
+            $this->db->insert('product_details', $dat2);
+
+            $this->alerta_stock($id_produ);
+            $message = 'Ajuste inventario '.$producto_indi->name.', ID: '.$products[$i].', Código: '.$code;
+            $this->insert_binnacle($message);
+        }
+
+        if ($num_products == 0) {
+            return false;
+        }
+
+        $data['num_products'] = $num_products;
+        $data['products']     = json_encode($producto);
+
+        $metodo = $this->input->post('metodo');
+        $total = $this->input->post('ttl');
+        $data['total'] = $total;
+        $data['metodo'] = $metodo;
+
+        if ($metodo == 'Efectivo') {
+            $pago = floatval($this->input->post('pago'));
+            $change = floatval($this->input->post('change'));
+            $data['total_pagado'] = $pago - $change;
+            $data['cambio'] = $change;
+        } elseif ($metodo == 'Tarjeta') {
+            $data['total_pagado'] = $total;
+            $data['no_documento'] = $this->input->post('voucher');
+        } elseif ($metodo == 'Transferencia') {
+            $data['total_pagado'] = $total;
+            $data['no_documento'] = $this->input->post('trans');
+        } elseif ($metodo == 'Cheque') {
+            $data['total_pagado'] = $total;
+            $data['no_documento'] = $this->input->post('cheque');
+        }
+
+        $data['credito']   = 0;
+        $data['estado']    = 2;
+        $data['type']      = $cliente_type;
+        $data['client_id'] = $client_id;
+        $data['name']      = $cliente ? ($cliente->name.', '.$cliente->last_name) : 'Ajuste inventario';
+        $data['nit']       = $cliente ? $cliente->nit : 'CF';
+        $data['phone']     = $cliente ? $cliente->phone : '';
+        $data['address']   = $cliente ? $cliente->address : '';
+        $data['factura']   = 0;
+        $data['details']   = 'Ajuste de inventario. '.trim((string)$this->input->post('nota'));
+
+        $this->db->insert('sales', $data);
+
+        $datain = array();
+        $datain['date']        = $data['date'];
+        $datain['week']        = date('W');
+        $datain['month']       = date('m');
+        $datain['year']        = date('Y');
+        $datain['datetime']    = date('Y-m-d H:i');
+        $datain['amount']      = $total;
+        $datain['responsable'] = $responsable;
+        $datain['sale_ref']    = $code;
+        $datain['origin']      = $metodo;
+        $datain['details']     = $data['details'];
+        $datain['branch_id']   = $this->session->userdata('branch_id');
+        $datain['status']      = 1;
+        $this->db->insert('income', $datain);
+
+        $message = 'Ha creado un ajuste de inventario con código: '.$code;
+        $this->insert_binnacle($message);
+        $this->insert_notification($message, base64_encode('admin/detalles_ventas/'.$code), 'ver_ventas', 'Ventas_update');
+
+        return 0;
+    }
+
     function apply_sale($code){
         $branch_id = $this->session->userdata('branch_id');
         if($this->input->post('ctz')==1){

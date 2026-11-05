@@ -3204,6 +3204,39 @@ class Admin extends CI_Controller
         $page_data['page_title'] = "Inventario";
         $this->load->view('backend/index', $page_data);
     }
+
+    function ajuste_inventario($param1 = "", $param2 = "", $param3 = "")
+    {
+        $this->admin_login();
+        if ($this->session->userdata('login_user_type') == 2) {
+            redirect(base_url(), 'refresh');
+        }
+
+        if ($param1 == "create") {
+            $this->ver_permisos('crear_ventas');
+            $return = $this->crud_model->create_sale_ajuste($param2, $param3);
+            if ($return === false) {
+                $this->session->set_flashdata('error_message', "No hay diferencias para ajustar.");
+                redirect(base_url() . 'admin/ajuste_inventario/', 'refresh');
+                return;
+            }
+            $this->session->set_flashdata('flash_message', "Ajuste de inventario registrado correctamente.");
+            if ($return == 1) {
+                redirect(base_url() . 'admin/creditos/', 'refresh');
+            } else {
+                redirect(base_url() . 'admin/ventas/', 'refresh');
+            }
+            return;
+        }
+
+        $precio = $this->input->post('precio_t');
+        if ($precio == '') $precio = 1;
+
+        $page_data['precio']     = $precio;
+        $page_data['page_name']  = 'ajuste_inventario';
+        $page_data['page_title'] = "Ajuste de inventario";
+        $this->load->view('backend/index', $page_data);
+    }
     
     function increases()
     {
