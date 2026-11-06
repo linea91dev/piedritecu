@@ -81,10 +81,28 @@
 var moneda = '<?php echo $moneda; ?>';
 
 $(document).ready(function() {
+    $('#provider_id').select2({
+        language: "es",
+        placeholder: 'Seleccionar',
+        allowClear: true
+    });
     <?php for ($i=0; $i <$data->row()->num_products ; $i++):?>
     sum(<?php echo $i;?>)
     <?php endfor;?>
 });
+
+function promotionProducts() {
+    <?php for ($i=0; $i < $data->row()->num_products ; $i++):?>
+    if ($("#promocion").is(":checked")) {
+        $("#price_buy-<?php echo $i;?>").data('old', $("#price_buy-<?php echo $i;?>").val());
+        $("#price_buy-<?php echo $i;?>").val(0);
+    } else {
+        var old = $("#price_buy-<?php echo $i;?>").data('old');
+        if (typeof old !== 'undefined') $("#price_buy-<?php echo $i;?>").val(old);
+    }
+    sum(<?php echo $i;?>);
+    <?php endfor;?>
+}
 
 function sum(i) {
 

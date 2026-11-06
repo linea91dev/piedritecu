@@ -8438,18 +8438,56 @@ function new_change()
     {
         $branch_id = $this->session->userdata('branch_id');
         $datetime = date('Y-m-d H:i:s');
-        $data['datetime'] = $datetime;
-        $data['type']     = 1;
+        $credito = $this->input->post('credito');
+        $destino = $this->input->post('location');
+        $md5 = str_replace(' ', '', date('Y m d H i s'));
+
+        $data = array();
+        $data['datetime']    = $datetime;
+        $data['type']        = 1;
+        $data['factura']     = $this->input->post('factura');
+        $data['chk_factura'] = $this->input->post('chk_factura') ? 1 : 0;
+        $data['responsable'] = $this->input->post('responsable');
+        $data['date']        = $this->input->post('date') ? date("Y-m-d", strtotime($this->input->post('date'))) : date('Y-m-d');
+        $data['location']    = $destino;
+        $data['destiny']     = $destino;
+        $data['details']     = $this->input->post('details');
+        $data['total']       = $this->input->post('ttl');
+        $data['promocion']   = $this->input->post('promocion') ? 1 : 0;
+        $provider_id = $this->input->post('provider');
+        if ($provider_id == "" || $provider_id == null) $provider_id = 0;
+        $data['provider'] = $provider_id;
+
+        if ($credito == 1) {
+            $data['credito'] = 1;
+            $dias_credito = (int) $this->input->post('dias_credito');
+            if (!in_array($dias_credito, array(15, 30, 45), true)) $dias_credito = 0;
+            $data['dias_credito'] = $dias_credito;
+        } else {
+            $data['credito'] = 0;
+            $data['dias_credito'] = 0;
+        }
+
+        if ($_FILES["factura_img"]["name"] != '') {
+            $data["factura_img"] = $md5.str_replace(' ', '', $_FILES["factura_img"]["name"]);
+            if ($_FILES["factura_img"]["type"] == 'application/pdf') {
+                $data["factura_file"] = 'pdf';
+            } else {
+                $data["factura_file"] = 'image';
+            }
+        }
+
         $this->db->where('code', $code);
         $this->db->update('shopping', $data);
-        
+
         $message = 'Ha completado una compra con código: '.$code;
         $this->insert_binnacle($message);
         $this->insert_notification($message, base64_encode('admin/detalles_compra/'.$code), 'ver_compras', 'Compra_completa');
-        
-        $expiration = $this->input->post('expiration');
 
-        $request= $this->db->get_where('request', array('code'=>$code))->result_array();
+        $expiration = $this->input->post('expiration');
+        $price_buy_post = $this->input->post('price_buy');
+
+        $request = $this->db->get_where('request', array('code'=>$code))->result_array();
         foreach ($request as $row) {
             for ($i=0; $i < $row['num_products'] ; $i++){
                 if ($row['products'] != "" || $row['products'] != null) {
@@ -8457,105 +8495,112 @@ function new_change()
                 } else {
                     $pro = array();
                 }
-                if ($pro[$i]['available'] == 1) {
-                    $id_product = $pro[$i]['product']; $amount = $pro[$i]['amount_give']; $cost = $pro[$i]['price_buy'];
-                    $prod = $this->db->get_where('products', array('products_id'=>$pro[$i]['product']))->row_array();
-                    $iva = 0;
-                    if (empty($prod['iva'])) $iva = 0;
-                    else $iva = 1;
+                if (!isset($pro[$i]) || $pro[$i]['available'] != 1) continue;
 
-                    if ($prod['presentation'] == 'Caja') {
-                        $id_product = $prod['id_prod_matriz'];
-                        $amount = $pro[$i]['amount_give']*$prod['cnt_prod_matriz'];
-                        if ($prod['cnt_prod_matriz'] > 0) $cost = $pro[$i]['price_buy'] / $prod['cnt_prod_matriz'];
-                        else $cost = $pro[$i]['price_buy'];
-                    }
+                $id_product = $pro[$i]['product'];
+                $amount = $pro[$i]['amount_give'];
+                $cost = isset($price_buy_post[$i]) && $price_buy_post[$i] !== '' ? $price_buy_post[$i] : $pro[$i]['price_buy'];
+                $prod = $this->db->get_where('products', array('products_id'=>$pro[$i]['product']))->row_array();
+                $iva = empty($prod['iva']) ? 0 : 1;
 
-                    // Costo promedio ponderado con existencia ANTES de registrar la compra
-                    $this->apply_weighted_average_product_cost(
-                        $pro[$i]['product'],
-                        $id_product,
-                        $amount,
-                        $cost,
-                        ($prod['presentation'] == 'Caja'),
-                        $prod['cnt_prod_matriz']
-                    );
-                    
-                    $dat2['date']         = $row['date'];
-                    $dat2['products_id']  = $id_product;
-                    $dat2['expiration']   = $expiration[$i];
-                    $dat2['branch_id']    = $row['destiny'];
-                    $dat2['user_id']      = $this->session->userdata('login_user_id');
-                    $dat2['type']         = 2;
-                    $dat2['provider']     = $prod['provider'];
-                    $dat2['amount']       = $amount;
-                    $dat2['cost']         = $cost;
-                    $dat2['price']        = $this->last_price($id_product,$row['destiny']);
-                    $dat2['activity_ref'] = $code;
-                    $dat2['description']  = 'Compra';
-                    $dat2['iva']          = $iva;
-                    $this->db->insert('product_details', $dat2); 
-                    $name    = $this->db->get_where('products',array('products_id'=>$id_product))->row()->name;
-                    $message = 'Ha agregado un nuevo lote de '.$name;
-                    $this->insert_binnacle($message);
-                    $this->insert_notification($message, base64_encode('admin/inventario/'), 'inventario', 'Inventario');
-                    
-                    
-                    $dat_lote['code']       = $code;
-                    $dat_lote['id_producto']= $id_product;
-                    $dat_lote['fecha']      = date('Y-m-d');;
-                    $dat_lote['fecha_vencimiento']= $expiration[$i];
-                    $dat_lote['transaccion']= 'Compra';
-                    $dat_lote['cantidad']   = $amount;
-                    $dat_lote['existencia'] = $amount;
-                    $dat_lote['precio']     = $cost;
-                    $dat_lote['branch_id']  = $row['destiny'];
-                    $this->db->insert('lotes', $dat_lote);
+                if ($prod['presentation'] == 'Caja') {
+                    $id_product = $prod['id_prod_matriz'];
+                    $amount = $pro[$i]['amount_give']*$prod['cnt_prod_matriz'];
+                    if ($prod['cnt_prod_matriz'] > 0) $cost = $cost / $prod['cnt_prod_matriz'];
+                }
+
+                $this->apply_weighted_average_product_cost(
+                    $pro[$i]['product'],
+                    $id_product,
+                    $amount,
+                    $cost,
+                    ($prod['presentation'] == 'Caja'),
+                    $prod['cnt_prod_matriz']
+                );
+
+                $dat2 = array();
+                $dat2['date']         = $data['date'];
+                $dat2['products_id']  = $id_product;
+                $dat2['expiration']   = $expiration[$i];
+                $dat2['branch_id']    = $destino;
+                $dat2['user_id']      = $this->session->userdata('login_user_id');
+                $dat2['type']         = 2;
+                $dat2['provider']     = $prod['provider'];
+                $dat2['amount']       = $amount;
+                $dat2['cost']         = $cost;
+                $dat2['price']        = $this->last_price($id_product, $destino);
+                $dat2['activity_ref'] = $code;
+                $dat2['description']  = 'Compra';
+                $dat2['iva']          = $iva;
+                $this->db->insert('product_details', $dat2);
+
+                $name = $this->db->get_where('products',array('products_id'=>$id_product))->row()->name;
+                $message = 'Ha agregado un nuevo lote de '.$name;
+                $this->insert_binnacle($message);
+                $this->insert_notification($message, base64_encode('admin/inventario/'), 'inventario', 'Inventario');
+
+                $dat_lote = array();
+                $dat_lote['code'] = $code;
+                $dat_lote['id_producto']= $id_product;
+                $dat_lote['fecha'] = $data['date'];
+                $dat_lote['fecha_vencimiento']= $expiration[$i];
+                $dat_lote['transaccion']= 'Compra';
+                $dat_lote['cantidad'] = $amount;
+                $dat_lote['existencia'] = $amount;
+                $dat_lote['precio'] = $cost;
+                $dat_lote['branch_id'] = $destino;
+                $dat_lote['chk_factura'] = $data['chk_factura'];
+                $this->db->insert('lotes', $dat_lote);
+            }
+        }
+
+        if ($credito != 1) {
+            $dat3 = array();
+            $dat3['amount'] = $this->input->post('ttl');
+            $dat3['origin'] = $this->input->post('origin');
+            if ($dat3['origin'] == 0) {
+                $cuenta = $this->db->get_where('account_bank', array('bank_id' => $dat3['origin'],'branch_id' => $branch_id,'status'=> 1))->row_array();
+            } else {
+                $cuenta = $this->db->get_where('account_bank', array('account_bank_id' => $dat3['origin']))->row_array();
+            }
+            if ($cuenta) {
+                $saldo = $cuenta['current_balance'] - $dat3['amount'];
+                $dat3['saldo_inicial'] = $cuenta['current_balance'];
+                $dat3['nuevo_saldo']   = $saldo;
+                $dat4['current_balance'] = $saldo;
+                $this->db->where('account_bank_id', $cuenta['account_bank_id']);
+                $this->db->update('account_bank', $dat4);
+            }
+
+            if ($_FILES["factura_img"]["name"] != '') {
+                $dat3["factura_img"] = $md5.str_replace(' ', '', $_FILES["factura_img"]["name"]);
+                if ($_FILES["factura_img"]["type"]=='application/pdf') {
+                    $dat3["factura_type"] = 'pdf';
+                } else {
+                    $dat3["factura_type"] = 'image';
                 }
             }
-        }
 
-        $md5 = str_replace(' ', '', date('Y m d H i s'));
+            $dat3['datetime'] = $datetime;
+            $dat3['status'] = 1;
+            $dat3['responsable'] = $this->input->post('responsable');
+            $dat3['details'] = trim($this->input->post('details').' '.$this->input->post('note'));
+            $dat3['date'] = $data['date'];
+            $this->db->where('reference_id', $code);
+            $this->db->where('table_reference', 'shopping');
+            $this->db->update('expense', $dat3);
 
-        $dat3['amount'] = $this->input->post('ttl');
-
-        $dat3['origin'] = $this->input->post('origin');
-        if ($dat3['origin'] == 0) {
-            $cuenta = $this->db->get_where('account_bank', array('bank_id' => $dat3['origin'],'branch_id' => $branch_id,'status'=> 1))->row_array();
-        }
-        else {
-            $cuenta = $this->db->get_where('account_bank', array('account_bank_id' => $dat3['origin']))->row_array();
-        }
-        $saldo = $cuenta['current_balance'] - $dat3['amount'];
-        $dat3['saldo_inicial'] = $cuenta['current_balance'];
-        $dat3['nuevo_saldo']   = $saldo;
-
-        $dat4['current_balance'] = $saldo;
-
-        $this->db->where('account_bank_id', $cuenta['account_bank_id']);
-        $this->db->update('account_bank', $dat4);
-
-        if($_FILES["factura_img"]["name"] != ''){
-            $dat3["factura_img"] = $md5.str_replace(' ', '', $_FILES["factura_img"]["name"]);
-            if ($_FILES["factura_img"]["type"]=='application/pdf') {
-                $data["factura_type"] = 'pdf';
-            }
-            else{
-                $data["factura_type"] = 'image';
+            $expense = $this->db->get_where('expense', array('reference_id'=>$code,'table_reference'=>'shopping'))->row_array();
+            if ($expense) {
+                $message = 'Ha ingresado un nuevo gasto con id: '.$expense['expense_id'].' y con un total de: '.$dat3['amount'];
+                $this->insert_binnacle($message);
+                $this->insert_notification($message, base64_encode('admin/egresos/'), 'ver_egresos', 'Egreso');
             }
         }
 
-        $dat3['datetime']        = $datetime;
-        $dat3['status']          = 1;
-        $this->db->where('reference_id', $code);
-        $this->db->where('table_reference', 'shopping');
-        $this->db->update('expense', $dat3);
-        move_uploaded_file($_FILES["factura_img"]["tmp_name"], 'uploads/vouchers/' . $md5.str_replace(" ", "", $_FILES["factura_img"]["name"]));
-        $expense = $this->db->get_where('expense', array('reference_id'=>$code,'table_reference'=>'shopping'))->row_array();
-
-        $message    = 'Ha ingresado un nuevo gasto con id: '.$expense['expense_id'].' y con un total de: '.$dat3['amount'];
-        $this->insert_binnacle($message);
-        $this->insert_notification($message, base64_encode('admin/egresos/'), 'ver_egresos', 'Egreso');
+        if ($_FILES["factura_img"]["name"] != '') {
+            move_uploaded_file($_FILES["factura_img"]["tmp_name"], 'uploads/vouchers/' . $md5.str_replace(" ", "", $_FILES["factura_img"]["name"]));
+        }
     }
     
     
