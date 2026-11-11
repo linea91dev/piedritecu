@@ -180,6 +180,21 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <label>Fecha de baja</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="kt_datepicker_baja" aria-label="Text input with checkbox" name="fecha_baja" readonly placeholder="dd/mm/aaaa" value="<?php echo (!empty($row['fecha_baja'] ?? '') && ($row['fecha_baja'] ?? '') != '0000-00-00') ? date('d/m/Y', strtotime($row['fecha_baja'])) : '';?>" />
+                                            </div>
+                                            <small>Dejar vacío si el empleado sigue activo.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <label>Motivo del retiro</label>
+                                            <textarea class="form-control" name="motivo_retiro" rows="3" placeholder="Indique el motivo de la baja o retiro"><?php echo htmlspecialchars($row['motivo_retiro'] ?? '', ENT_QUOTES, 'UTF-8');?></textarea>
+                                        </div>
+                                    </div>
                                     <div class="col-sm-4">
                                         <div class="form-group">
                                             <label> Puesto </label>

@@ -84,6 +84,22 @@
                             </div>
                             <div class="col-sm-6">
                                 <div class="form-group">
+                                    <label>Fecha de baja</label>
+                                    <div class="input-group">
+                                        <input type="date" class="form-control" name="fecha_baja"
+                                            value="<?php echo (!empty($row['fecha_baja'] ?? '') && ($row['fecha_baja'] ?? '') != '0000-00-00') ? $row['fecha_baja'] : '';?>" />
+                                    </div>
+                                    <small>Dejar vacío si el empleado sigue activo.</small>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label>Motivo del retiro</label>
+                                    <textarea class="form-control" name="motivo_retiro" rows="3" placeholder="Indique el motivo de la baja o retiro"><?php echo htmlspecialchars($row['motivo_retiro'] ?? '', ENT_QUOTES, 'UTF-8');?></textarea>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
                                     <label>Celular</label>
                                     <div class="input-group">
                                         <input type="tel" class="form-control" aria-label="Text input with checkbox"

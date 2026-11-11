@@ -3150,6 +3150,7 @@ class Admin extends CI_Controller
     function empleados_edit($param1){
         $this->admin_login();
         $this->ver_permisos('editar_empleados');
+        $this->crud_model->ensure_admin_baja_columns();
 
         $page_data['ID']         = $param1;
         $page_data['page_name']  = 'empleados_edit';
@@ -3160,6 +3161,7 @@ class Admin extends CI_Controller
     function perfil_empleado($param1){
         $this->admin_login();
         $this->ver_permisos('empleados');
+        $this->crud_model->ensure_admin_baja_columns();
 
         $page_data['ID']         = $param1;
         $page_data['page_name']  = 'perfil_empleado';

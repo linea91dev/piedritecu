@@ -83,6 +83,9 @@ var KTAppSettings = {
         if ($('#kt_datepicker_1').length) {
             $('#kt_datepicker_1').datepicker('destroy').datepicker(dateOpts);
         }
+        if ($('#kt_datepicker_baja').length) {
+            $('#kt_datepicker_baja').datepicker('destroy').datepicker(dateOpts);
+        }
     });
     </script>
     <?php endif; ?>

@@ -116,6 +116,12 @@ $cell_value = 'width: 26%; padding: 9px; border: 1px solid #999;';
                     <td style="<?php echo $cell_value;?>"><?php echo $format_date($employee['hiring']);?></td>
                 </tr>
                 <tr>
+                    <td style="<?php echo $cell_label;?>">Fecha de baja</td>
+                    <td style="<?php echo $cell_value;?>"><?php echo $format_date(isset($employee['fecha_baja']) ? $employee['fecha_baja'] : '');?></td>
+                    <td style="<?php echo $cell_label;?>">Motivo del retiro</td>
+                    <td style="<?php echo $cell_value;?>"><?php echo $escape(!empty($employee['motivo_retiro'] ?? '') ? $employee['motivo_retiro'] : 'Sin datos');?></td>
+                </tr>
+                <tr>
                     <td style="<?php echo $cell_label;?>">Sucursal</td>
                     <td style="<?php echo $cell_value;?>"><?php echo $escape($branch_names ? implode(', ', $branch_names) : 'Sin datos');?></td>
                     <td style="<?php echo $cell_label;?>">Número de cuenta</td>

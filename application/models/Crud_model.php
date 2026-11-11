@@ -1624,6 +1624,10 @@ class Crud_model extends CI_Model {
         $data['complemento']   = ($complemento === '' || $complemento === null) ? 0 : max(0, (float) $complemento);
         $data['address']       = trim($this->input->post('address'));
         $data['hiring']        = $this->parse_date_input($this->input->post('hiring'));
+        $this->ensure_admin_baja_columns();
+        $fecha_baja = $this->parse_date_input($this->input->post('fecha_baja'));
+        $data['fecha_baja']    = $fecha_baja ? $fecha_baja : null;
+        $data['motivo_retiro'] = trim((string) $this->input->post('motivo_retiro'));
         $data['job']           = $this->input->post('job');    
         $data['sucursal']      = serialize($this->input->post('branch'));
 
@@ -1742,6 +1746,20 @@ class Crud_model extends CI_Model {
         }
     }
 
+    function ensure_admin_baja_columns()
+    {
+        static $checked = false;
+        if ($checked) return;
+        $checked = true;
+        $fields = $this->db->list_fields('admin');
+        if (!in_array('fecha_baja', $fields)) {
+            $this->db->query("ALTER TABLE `admin` ADD COLUMN `fecha_baja` DATE NULL DEFAULT NULL AFTER `hiring`");
+        }
+        if (!in_array('motivo_retiro', $fields)) {
+            $this->db->query("ALTER TABLE `admin` ADD COLUMN `motivo_retiro` TEXT NULL AFTER `fecha_baja`");
+        }
+    }
+
     function update_employee($ID){
         
         $data['name']          = $this->input->post('name');
@@ -1756,6 +1774,10 @@ class Crud_model extends CI_Model {
         $data['bonus']         = $this->input->post('bonus');   
         $data['address']       = trim($this->input->post('address'));
         $data['hiring']        = $this->parse_date_input($this->input->post('hiring'));
+        $this->ensure_admin_baja_columns();
+        $fecha_baja = $this->parse_date_input($this->input->post('fecha_baja'));
+        $data['fecha_baja']    = $fecha_baja ? $fecha_baja : null;
+        $data['motivo_retiro'] = trim((string) $this->input->post('motivo_retiro'));
         $data['job']           = $this->input->post('job');    
         $data['sucursal']      = serialize($this->input->post('branch'));   
         $this->db->where('admin_id', $ID);
