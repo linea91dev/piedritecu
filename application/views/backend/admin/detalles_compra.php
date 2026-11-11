@@ -170,12 +170,6 @@
                         </div>
                         <div class="col-sm-4">
                             <div class="form-group">
-                                <label><b>Proveedor:</b></label><br>
-                                <?php echo $this->db->get_where('provider',array('provider_id'=>$shopping->provider))->row()->name; ?>
-                            </div>
-                        </div>
-                        <div class="col-sm-4">
-                            <div class="form-group">
                                 <label><b>Estado:</b></label><br>
                                 <span
                                     class="badge badge-<?php if($shopping->type==3){echo 'warning';}elseif($shopping->type==2){echo 'info';}elseif($shopping->type==1){echo 'success';} ?>"><?php if($shopping->type==3){echo 'Solicitud de compra ';}elseif($shopping->type==2){echo 'Orden de compra';}elseif($shopping->type==1){echo 'Completado';} ?></span>
@@ -193,7 +187,46 @@
                                 <?php echo $shopping->details;?>
                             </div>
                         </div>
-                        
+                        <div class="col-sm-12">
+                            <div class="form-group">
+                                <label><b>Proveedor:</b></label>
+                                <?php if((int)$shopping->type !== 1 && ($user_type == 1 || $permisos['editar_compras'] == 1)):?>
+                                <form method="POST" action="<?php echo base_url();?>admin/detalles_compra/change_provider" class="mt-2">
+                                    <input type="hidden" name="code" value="<?php echo $shopping->code;?>">
+                                    <div class="row">
+                                        <div class="col-sm-8">
+                                            <select class="form-control" name="provider" id="provider_change" required>
+                                                <option value="">Seleccionar</option>
+                                                <?php
+                                                $providers = $this->db->order_by('name', 'ASC')->get_where('provider', array('status' => 1))->result_array();
+                                                foreach ($providers as $prov):
+                                                ?>
+                                                <option value="<?php echo $prov['provider_id'];?>" <?php if((int)$prov['provider_id'] === (int)$shopping->provider) echo 'selected';?>>
+                                                    <?php echo $prov['name'];?>
+                                                </option>
+                                                <?php endforeach;?>
+                                            </select>
+                                            <small class="text-muted">Si otro proveedor ofrece mejor precio, cámbialo aquí y reenvía la solicitud.</small>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <button type="submit" class="btn btn-warning font-weight-bolder btn-block"
+                                                onclick="return confirm('¿Cambiar el proveedor de esta solicitud?');">
+                                                Cambiar proveedor
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div class="mt-3">
+                                    <a href="<?php echo base_url().'provider/detalles_compra/'.$shopping->code;?>" target="_blank" class="btn btn-light-info font-weight-bolder btn-sm">
+                                        Abrir enlace para el proveedor
+                                    </a>
+                                </div>
+                                <?php else:
+                                    $prov_row = $this->db->get_where('provider',array('provider_id'=>$shopping->provider))->row();
+                                    echo $prov_row ? $prov_row->name : 'Sin proveedor';
+                                endif;?>
+                            </div>
+                        </div>
 
                     </div>
                 </div>

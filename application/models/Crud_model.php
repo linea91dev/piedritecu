@@ -8456,6 +8456,51 @@ function new_change()
         $this->insert_notification($message, base64_encode('admin/compras/'), 'ver_compras', 'Compra_eliminada');
     }
 
+    function change_shopping_provider($code)
+    {
+        $code = trim((string) $code);
+        $provider_id = (int) $this->input->post('provider');
+        if ($code === '' || $provider_id <= 0) {
+            return false;
+        }
+
+        $shopping = $this->db->get_where('shopping', array('code' => $code))->row();
+        if (!$shopping) {
+            return false;
+        }
+
+        $provider = $this->db->get_where('provider', array('provider_id' => $provider_id, 'status' => 1))->row();
+        if (!$provider) {
+            return false;
+        }
+
+        $old_provider = (int) $shopping->provider;
+        $data = array('provider' => $provider_id);
+
+        // Si aún no está completada, vuelve a solicitud para cotizar con el nuevo proveedor
+        if ((int) $shopping->type !== 1) {
+            $data['type'] = 3;
+        }
+
+        $this->db->where('code', $code);
+        $this->db->update('shopping', $data);
+
+        $request = $this->db->get_where('request', array('code' => $code));
+        if ($request->num_rows() > 0) {
+            $this->db->where('code', $code);
+            $this->db->update('request', array('provider' => $provider_id));
+        }
+
+        $old_name = $old_provider > 0
+            ? $this->db->get_where('provider', array('provider_id' => $old_provider))->row()->name
+            : 'Sin proveedor';
+        $message = 'Cambió el proveedor de la compra '.$code.' de '.$old_name.' a '.$provider->name;
+        $this->insert_binnacle($message);
+        $this->insert_notification($message, base64_encode('admin/detalles_compra/'.$code), 'ver_compras', 'Compra_update');
+
+        return true;
+    }
+
     function complete_shopping($code)
     {
         $branch_id = $this->session->userdata('branch_id');

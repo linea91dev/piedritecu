@@ -5761,6 +5761,19 @@ echo $table;
         $this->admin_login();
         $this->ver_permisos('ver_compras');
 
+        if ($param1 == 'change_provider') {
+            $this->ver_permisos('editar_compras');
+            $code = $this->input->post('code');
+            $ok = $this->crud_model->change_shopping_provider($code);
+            if ($ok) {
+                $this->session->set_flashdata('flash_message', "Proveedor actualizado. Puedes reenviar la solicitud al nuevo proveedor.");
+            } else {
+                $this->session->set_flashdata('error_message', "No se pudo cambiar el proveedor.");
+            }
+            redirect(base_url() . 'admin/detalles_compra/'.$code, 'refresh');
+            return;
+        }
+
         if($this->input->post('code') == "")
             $page_data['code'] = $param1;
         else
