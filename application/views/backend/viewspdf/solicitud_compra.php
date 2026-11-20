@@ -146,13 +146,13 @@
                     <tr>
                         <td style="width:48%; text-align:center; vertical-align:bottom; padding:10px;">
                             <div style="border-top:1px solid #000; margin:60px 20px 8px 20px;"></div>
-                            <p style="font-size:11px; margin:0; font-weight:bold;">Departamento de Compras</p>
+                            <p style="font-size:11px; margin:0; font-weight:bold;">Encargado de Bodega</p>
                             <p style="font-size:10px; margin:2px 0 0 0;">Firma y nombre</p>
                         </td>
                         <td style="width:4%;"></td>
                         <td style="width:48%; text-align:center; vertical-align:bottom; padding:10px;">
                             <div style="border-top:1px solid #000; margin:60px 20px 8px 20px;"></div>
-                            <p style="font-size:11px; margin:0; font-weight:bold;">Gerente General y/o Administrativo</p>
+                            <p style="font-size:11px; margin:0; font-weight:bold;">Encargado de Compras</p>
                             <p style="font-size:10px; margin:2px 0 0 0;">Firma y nombre</p>
                         </td>
                     </tr>
