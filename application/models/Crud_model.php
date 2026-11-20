@@ -13173,8 +13173,9 @@ function new_change()
 
         $resumen = $this->get_resumen_caja_sesion($sesion);
         $monto_cierre = floatval($this->input->post('ver_caja'));
-        $esperado = isset($this->input->post('caja_nueva')) && $this->input->post('caja_nueva') !== ''
-            ? floatval($this->input->post('caja_nueva'))
+        $caja_nueva = $this->input->post('caja_nueva');
+        $esperado = ($caja_nueva !== null && $caja_nueva !== '')
+            ? floatval($caja_nueva)
             : floatval($resumen['esperado']);
         $diferencia = abs($monto_cierre - $esperado);
         $notes = trim((string)$this->input->post('notes'));
