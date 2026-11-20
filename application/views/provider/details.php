@@ -25,6 +25,55 @@
                                 <b><?php echo strtoupper($this->db->get_where('settings', array('type'=>'name'))->row()->description);?></b>
                                 te ha enviado una solicitud de compra.
                             </h3>
+                            <?php
+                            $shopping_row = $data->row();
+                            $current_provider = $this->db->get_where('provider', array('provider_id' => $shopping_row->provider))->row();
+                            ?>
+                            <?php if ((int)$shopping_row->type !== 1): ?>
+                            <div class="row mb-4">
+                                <div class="col-sm-12">
+                                    <div class="card border-warning">
+                                        <div class="card-body">
+                                            <h5 class="text-warning mb-3">Cambiar proveedor</h5>
+                                            <p class="mb-2">
+                                                Proveedor actual:
+                                                <b><?php echo $current_provider ? $current_provider->name : 'Sin proveedor'; ?></b>
+                                            </p>
+                                            <form method="POST" action="<?php echo base_url();?>provider/detalles_compra/change_provider">
+                                                <input type="hidden" name="code" value="<?php echo $code;?>">
+                                                <div class="row align-items-end">
+                                                    <div class="col-sm-8">
+                                                        <label><b>Nuevo proveedor</b></label>
+                                                        <select class="form-control" name="provider" required>
+                                                            <option value="">Seleccionar</option>
+                                                            <?php
+                                                            $providers = $this->db->order_by('name', 'ASC')->get_where('provider', array('status' => 1))->result_array();
+                                                            foreach ($providers as $prov):
+                                                            ?>
+                                                            <option value="<?php echo $prov['provider_id'];?>" <?php if((int)$prov['provider_id'] === (int)$shopping_row->provider) echo 'selected';?>>
+                                                                <?php echo $prov['name'];?>
+                                                            </option>
+                                                            <?php endforeach;?>
+                                                        </select>
+                                                        <small class="text-muted">Si otro proveedor ofrece mejor precio, cámbialo aquí y reenvía la solicitud.</small>
+                                                    </div>
+                                                    <div class="col-sm-4">
+                                                        <button type="submit" class="btn btn-warning font-weight-bolder btn-block"
+                                                            onclick="return confirm('¿Cambiar el proveedor de esta solicitud?');">
+                                                            Cambiar proveedor
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php elseif ($current_provider): ?>
+                            <div class="alert alert-secondary mb-4">
+                                <b>Proveedor:</b> <?php echo $current_provider->name;?>
+                            </div>
+                            <?php endif; ?>
                             <form class="form" action="<?php echo base_url(),'provider/request/create/'.$code;?>"
                                 method="POST" enctype="multipart/form-data">
                                 <div class="row">

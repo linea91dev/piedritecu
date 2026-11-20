@@ -15,6 +15,23 @@ class Provider extends CI_Controller
  
     public function detalles_compra($param1)
     {
+        if ($param1 == 'change_provider') {
+            if ($this->session->userdata('admin_login') != 1) {
+                redirect(base_url() . 'login', 'refresh');
+                return;
+            }
+            $this->load->model('crud_model');
+            $code = $this->input->post('code');
+            $ok = $this->crud_model->change_shopping_provider($code);
+            if ($ok) {
+                $this->session->set_flashdata('flash_message', 'Proveedor actualizado. Puedes reenviar la solicitud al nuevo proveedor.');
+            } else {
+                $this->session->set_flashdata('error_message', 'No se pudo cambiar el proveedor.');
+            }
+            redirect(base_url() . 'provider/detalles_compra/'.$code, 'refresh');
+            return;
+        }
+
         $page_data['code'] = $param1;
         $this->load->view('provider/details', $page_data);
     }  
