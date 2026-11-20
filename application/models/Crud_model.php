@@ -6683,12 +6683,54 @@ function new_change()
             $purchase_unit_cost
         );
 
+        return $this->save_product_average_cost(
+            $unit_product_id,
+            $purchased_product_id,
+            $new_cost,
+            $is_caja,
+            $cnt_prod_matriz
+        );
+    }
+
+    /**
+     * Costo promedio ponderado según lotes con existencia:
+     * SUM(existencia * precio) / SUM(existencia)
+     * Incluye la compra recién registrada si ya se insertó el lote.
+     */
+    function recalculate_product_average_cost_from_lotes($unit_product_id, $purchased_product_id = null, $is_caja = false, $cnt_prod_matriz = 0, $fallback_cost = null)
+    {
+        $this->db->select('SUM(existencia * precio) AS total_value, SUM(existencia) AS total_quantity', false);
+        $this->db->where('id_producto', $unit_product_id);
+        $this->db->where('existencia >', 0);
+        $result = $this->db->get('lotes')->row();
+
+        if ($result && floatval($result->total_quantity) > 0) {
+            $new_cost = floatval($result->total_value) / floatval($result->total_quantity);
+        } elseif ($fallback_cost !== null && $fallback_cost !== '') {
+            $new_cost = floatval($fallback_cost);
+        } else {
+            $prod = $this->db->get_where('products', array('products_id' => $unit_product_id))->row();
+            $new_cost = $prod ? floatval($prod->cost) : 0;
+        }
+
+        return $this->save_product_average_cost(
+            $unit_product_id,
+            $purchased_product_id ? $purchased_product_id : $unit_product_id,
+            $new_cost,
+            $is_caja,
+            $cnt_prod_matriz
+        );
+    }
+
+    function save_product_average_cost($unit_product_id, $purchased_product_id, $new_cost, $is_caja = false, $cnt_prod_matriz = 0)
+    {
+        $new_cost = round(floatval($new_cost), 4);
+
         if ($is_caja) {
             $this->db->where('products_id', $unit_product_id);
             $this->db->update('products', array('cost' => $new_cost));
-            $caja_cost = $new_cost * floatval($cnt_prod_matriz);
             $this->db->where('products_id', $purchased_product_id);
-            $this->db->update('products', array('cost' => $caja_cost));
+            $this->db->update('products', array('cost' => $new_cost * floatval($cnt_prod_matriz)));
         } else {
             $this->db->where('products_id', $purchased_product_id);
             $this->db->update('products', array('cost' => $new_cost));
@@ -8013,26 +8055,23 @@ function new_change()
                 if (!$producto->iva) $iva = 0;
                 else $iva = 1;
 
+                $unit_price = floatval($price_buy[$i]);
+                $disc = (is_array($discount) && isset($discount[$i]) && $discount[$i] !== '' && is_numeric($discount[$i]))
+                    ? floatval($discount[$i]) : 0;
+                if ($disc > 0) {
+                    $unit_price = $unit_price * (1 - ($disc / 100));
+                }
+
                 if($producto->presentation == 'Caja'){
                     $id_producto = $producto->id_prod_matriz;
                     $cantidad = ($producto->cnt_prod_matriz*$amount[$i]);
-                    if ($producto->cnt_prod_matriz > 0) $cost = $price_buy[$i] / $producto->cnt_prod_matriz;
-                    else $cost = $price_buy[$i];
+                    if ($producto->cnt_prod_matriz > 0) $cost = $unit_price / $producto->cnt_prod_matriz;
+                    else $cost = $unit_price;
                 }else{
                     $id_producto = $product[$i];
                     $cantidad = $amount[$i];
-                    $cost = $price_buy[$i];
+                    $cost = $unit_price;
                 }
-
-                // Costo promedio ponderado con existencia ANTES de registrar la compra
-                $this->apply_weighted_average_product_cost(
-                    $product[$i],
-                    $id_producto,
-                    $cantidad,
-                    $cost,
-                    ($producto->presentation == 'Caja'),
-                    $producto->cnt_prod_matriz
-                );
 
                 $dat2['date']         = date('Y-m-d');
                 $dat2['products_id']  = $id_producto;
@@ -8047,6 +8086,7 @@ function new_change()
                 $dat2['activity_ref'] = $this->input->post('code');
                 $dat2['description']  = 'Compra';
                 $dat2['iva']          = $iva;
+                $dat2['status']       = 1;
                 $this->db->insert('product_details', $dat2); 
                 
                 $dat_lote['code']       = $code;
@@ -8059,7 +8099,16 @@ function new_change()
                 $dat_lote['precio']     = $cost;
                 $dat_lote['branch_id']  = $destino;
                 $dat_lote['chk_factura'] = $this->input->post('chk_factura');
-                $this->db->insert('lotes', $dat_lote); 
+                $this->db->insert('lotes', $dat_lote);
+
+                // Promedio ponderado con lotes (incluye esta compra) y actualiza products.cost
+                $this->recalculate_product_average_cost_from_lotes(
+                    $id_producto,
+                    $product[$i],
+                    ($producto->presentation == 'Caja'),
+                    $producto->cnt_prod_matriz,
+                    $cost
+                );
                 
                 $name    = $this->db->get_where('products',array('products_id'=>$dat2['products_id']))->row()->name;
                 $message = 'Ha agregado un nuevo lote de '.$name;
@@ -8576,15 +8625,6 @@ function new_change()
                     if ($prod['cnt_prod_matriz'] > 0) $cost = $cost / $prod['cnt_prod_matriz'];
                 }
 
-                $this->apply_weighted_average_product_cost(
-                    $pro[$i]['product'],
-                    $id_product,
-                    $amount,
-                    $cost,
-                    ($prod['presentation'] == 'Caja'),
-                    $prod['cnt_prod_matriz']
-                );
-
                 $dat2 = array();
                 $dat2['date']         = $data['date'];
                 $dat2['products_id']  = $id_product;
@@ -8599,6 +8639,7 @@ function new_change()
                 $dat2['activity_ref'] = $code;
                 $dat2['description']  = 'Compra';
                 $dat2['iva']          = $iva;
+                $dat2['status']       = 1;
                 $this->db->insert('product_details', $dat2);
 
                 $name = $this->db->get_where('products',array('products_id'=>$id_product))->row()->name;
@@ -8618,6 +8659,15 @@ function new_change()
                 $dat_lote['branch_id'] = $destino;
                 $dat_lote['chk_factura'] = $data['chk_factura'];
                 $this->db->insert('lotes', $dat_lote);
+
+                // Promedio ponderado con lotes (incluye esta compra) y actualiza products.cost
+                $this->recalculate_product_average_cost_from_lotes(
+                    $id_product,
+                    $pro[$i]['product'],
+                    ($prod['presentation'] == 'Caja'),
+                    $prod['cnt_prod_matriz'],
+                    $cost
+                );
             }
         }
 

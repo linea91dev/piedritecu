@@ -44,9 +44,41 @@ $branchid= $this->session->userdata('branch_id');?>
                                          <?php echo $product->name.'('.$product->code.')';?> 
                                     </h2>
 
-                                    <div class="font-size-h2 mb-7 text-dark-50">Precio
-                                        <span
-                                            class="text-info font-weight-boldest ml-2"><?php echo $moneda.number_format($product->price,2,'.',',');?></span>
+                                    <?php
+                                    $pid_cost = ($product->presentation == 'Caja' && !empty($product->id_prod_matriz))
+                                        ? $product->id_prod_matriz
+                                        : $ID;
+                                    $this->db->select('precio');
+                                    $this->db->where('id_producto', $pid_cost);
+                                    $this->db->where('transaccion', 'Compra');
+                                    $this->db->order_by('lote_id', 'DESC');
+                                    $this->db->limit(2);
+                                    $lotes_cost = $this->db->get('lotes')->result_array();
+                                    $factor_caja = ($product->presentation == 'Caja' && floatval($product->cnt_prod_matriz) > 0)
+                                        ? floatval($product->cnt_prod_matriz)
+                                        : 1;
+                                    $costo_actual = floatval($product->cost);
+                                    $costo_anterior = null;
+                                    if (isset($lotes_cost[1]['precio']) && $lotes_cost[1]['precio'] !== '') {
+                                        $costo_anterior = floatval($lotes_cost[1]['precio']) * $factor_caja;
+                                    } elseif (isset($lotes_cost[0]['precio']) && count($lotes_cost) === 1) {
+                                        // Solo una compra: el anterior no aplica
+                                        $costo_anterior = null;
+                                    }
+                                    ?>
+                                    <div class="font-size-h2 mb-3 text-dark-50">Precio
+                                        <span class="text-info font-weight-boldest ml-2"><?php echo $moneda.number_format($product->price,2,'.',',');?></span>
+                                        <span class="mx-2 text-muted">|</span>
+                                        Costo
+                                        <span class="text-warning font-weight-boldest ml-2"><?php echo $moneda.number_format($costo_actual,2,'.',',');?></span>
+                                    </div>
+                                    <div class="font-size-h5 mb-7 text-dark-50">
+                                        Último costo anterior
+                                        <span class="text-muted font-weight-boldest ml-2">
+                                            <?php echo ($costo_anterior !== null)
+                                                ? $moneda.number_format($costo_anterior,2,'.',',')
+                                                : 'Sin historial'; ?>
+                                        </span>
                                     </div>
                                     <div class="line-height-xl"><?php echo $product->description;?></div>
                                 </div>
