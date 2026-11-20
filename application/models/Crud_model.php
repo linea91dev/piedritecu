@@ -3564,11 +3564,25 @@ class Crud_model extends CI_Model {
         $producto = array();
         $num_products = 0;
 
+        // Precargar productos en una sola consulta
+        $product_ids = array();
+        foreach ($products as $pid) {
+            if ($pid !== '' && $pid !== null) $product_ids[] = (int)$pid;
+        }
+        $products_map = array();
+        if (!empty($product_ids)) {
+            $this->db->where_in('products_id', array_unique($product_ids));
+            foreach ($this->db->get('products')->result() as $prow) {
+                $products_map[(int)$prow->products_id] = $prow;
+            }
+        }
+
         for ($i = 0; $i < sizeof($products); $i++) {
             $qty = isset($amount[$i]) ? floatval($amount[$i]) : 0;
             if ($qty <= 0 || $products[$i] == '') continue;
 
-            $producto_indi = $this->db->get_where('products', array('products_id' => $products[$i]))->row();
+            $pid = (int)$products[$i];
+            $producto_indi = isset($products_map[$pid]) ? $products_map[$pid] : null;
             if (!$producto_indi) continue;
 
             $iva = $producto_indi->iva ? 1 : 0;
@@ -6613,6 +6627,56 @@ function new_change()
             return $total;
         else
             return 0;
+    }
+
+    /**
+     * Mapa products_id => existencia en una sucursal/bodega (una sola consulta).
+     */
+    function get_stocks_map($branch_id)
+    {
+        $sql = "SELECT products_id,
+                    COALESCE(SUM(CASE WHEN type IN (1,2) AND status = 1 THEN amount ELSE 0 END), 0)
+                  - COALESCE(SUM(CASE WHEN type IN (0,3,4) AND status = 1 THEN amount ELSE 0 END), 0) AS stock
+                FROM product_details
+                WHERE branch_id = ?
+                GROUP BY products_id
+                HAVING stock > 0";
+        $rows = $this->db->query($sql, array((int)$branch_id))->result_array();
+        $map = array();
+        foreach ($rows as $row) {
+            $map[(int)$row['products_id']] = floatval($row['stock']);
+        }
+        return $map;
+    }
+
+    /**
+     * Productos unidad activos con existencia en bodega, listos para ajuste.
+     */
+    function get_products_for_ajuste_inventario()
+    {
+        $stocks = $this->get_stocks_map(0);
+        if (empty($stocks)) {
+            return array();
+        }
+
+        $ids = array_keys($stocks);
+        $this->db->select('products_id, name, code, price, farma, precio_mayorista, precio_ferretero, cost');
+        $this->db->where('status', 1);
+        $this->db->where('presentation', 'Unidad');
+        $this->db->where_in('products_id', $ids);
+        $this->db->order_by('code', 'ASC');
+        $products = $this->db->get('products')->result_array();
+
+        $list = array();
+        foreach ($products as $pp) {
+            $pid = (int)$pp['products_id'];
+            if (!isset($stocks[$pid]) || $stocks[$pid] <= 0) {
+                continue;
+            }
+            $pp['stock'] = $stocks[$pid];
+            $list[] = $pp;
+        }
+        return $list;
     }
 
     /** Stock total del producto en todas las sucursales/bodega (antes de una compra). */

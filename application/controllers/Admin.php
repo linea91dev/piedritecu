@@ -3235,6 +3235,7 @@ class Admin extends CI_Controller
         if ($precio == '') $precio = 1;
 
         $page_data['precio']     = $precio;
+        $page_data['ajuste_products'] = $this->crud_model->get_products_for_ajuste_inventario();
         $page_data['page_name']  = 'ajuste_inventario';
         $page_data['page_title'] = "Ajuste de inventario";
         $this->load->view('backend/index', $page_data);
