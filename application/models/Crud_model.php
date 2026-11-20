@@ -3508,6 +3508,27 @@ class Crud_model extends CI_Model {
         $message = 'Ha creado una  venta con código: '.$code;
         $this->insert_binnacle($message);
         $this->insert_notification($message, base64_encode('admin/detalles_ventas/'.$code), 'ver_ventas', 'Ventas_update');
+
+        $metodo_venta = $this->input->post('metodo');
+        $total_venta = floatval($this->input->post('ttl'));
+        if ($this->input->post('credito') == 1) {
+            $abono = floatval($this->input->post('pago'));
+            if ($abono > 0 && strcasecmp($metodo_venta, 'Efectivo') === 0) {
+                $this->registrar_movimiento_caja('ingreso', 'abono_credito', $abono, $code, 'Abono inicial crédito venta '.$code, 'Efectivo');
+            } elseif ($abono > 0 && strcasecmp($metodo_venta, 'Tarjeta') === 0) {
+                $this->registrar_movimiento_caja('info', 'venta_tarjeta', $abono, $code, 'Abono inicial crédito (tarjeta) '.$code, 'Tarjeta');
+            } elseif ($abono > 0 && strcasecmp($metodo_venta, 'Transferencia') === 0) {
+                $this->registrar_movimiento_caja('info', 'venta_transferencia', $abono, $code, 'Abono inicial crédito (transferencia) '.$code, 'Transferencia');
+            }
+        } else {
+            if (strcasecmp($metodo_venta, 'Efectivo') === 0) {
+                $this->registrar_movimiento_caja('ingreso', 'venta_efectivo', $total_venta, $code, 'Venta en efectivo '.$code, 'Efectivo');
+            } elseif (strcasecmp($metodo_venta, 'Tarjeta') === 0) {
+                $this->registrar_movimiento_caja('info', 'venta_tarjeta', $total_venta, $code, 'Venta con tarjeta '.$code, 'Tarjeta');
+            } elseif (strcasecmp($metodo_venta, 'Transferencia') === 0) {
+                $this->registrar_movimiento_caja('info', 'venta_transferencia', $total_venta, $code, 'Venta por transferencia '.$code, 'Transferencia');
+            }
+        }
         
         if($this->input->post('credito') == 1)
         {
@@ -3747,6 +3768,21 @@ class Crud_model extends CI_Model {
         $message = 'Ha creado un ajuste de inventario con código: '.$code;
         $this->insert_binnacle($message);
         $this->insert_notification($message, base64_encode('admin/detalles_ventas/'.$code), 'ver_ventas', 'Ventas_update');
+
+        if ($es_credito) {
+            $abono = floatval($data['total_pagado']);
+            if ($abono > 0 && strcasecmp($metodo, 'Efectivo') === 0) {
+                $this->registrar_movimiento_caja('ingreso', 'abono_credito', $abono, $code, 'Abono inicial ajuste crédito '.$code, 'Efectivo');
+            }
+        } else {
+            if (strcasecmp($metodo, 'Efectivo') === 0) {
+                $this->registrar_movimiento_caja('ingreso', 'venta_efectivo', $total, $code, 'Ajuste inventario efectivo '.$code, 'Efectivo');
+            } elseif (strcasecmp($metodo, 'Tarjeta') === 0) {
+                $this->registrar_movimiento_caja('info', 'venta_tarjeta', $total, $code, 'Ajuste inventario tarjeta '.$code, 'Tarjeta');
+            } elseif (strcasecmp($metodo, 'Transferencia') === 0) {
+                $this->registrar_movimiento_caja('info', 'venta_transferencia', $total, $code, 'Ajuste inventario transferencia '.$code, 'Transferencia');
+            }
+        }
 
         if ($es_credito) {
             $message = 'Ha creado un ajuste de inventario con código: '.$code.' a disposición de crédito';
@@ -5025,6 +5061,17 @@ class Crud_model extends CI_Model {
         $data_in['branch_id']   = $this->session->userdata('branch_id');
         $data_in['status']      = 1;
         $this->db->insert('income', $data_in);
+
+        $pago_abono = floatval($this->input->post('pago'));
+        if ($pago_abono > 0) {
+            if ($data_ct['method'] == 'Efectivo') {
+                $this->registrar_movimiento_caja('ingreso', 'abono_credito', $pago_abono, $code, 'Abono a crédito '.$code, 'Efectivo');
+            } elseif ($data_ct['method'] == 'Tarjeta') {
+                $this->registrar_movimiento_caja('info', 'venta_tarjeta', $pago_abono, $code, 'Abono a crédito con tarjeta '.$code, 'Tarjeta');
+            } elseif ($data_ct['method'] == 'Transferencia') {
+                $this->registrar_movimiento_caja('info', 'venta_transferencia', $pago_abono, $code, 'Abono a crédito por transferencia '.$code, 'Transferencia');
+            }
+        }
          $month = date('m');
          $year = date('Y');
          $day = date('d');
@@ -5133,6 +5180,17 @@ class Crud_model extends CI_Model {
             
             $this->db->insert('expense', $dat3);
             //$expense_id = $this->db->insert_id();
+
+            if ($data_ct['method'] == 'Efectivo' && floatval($data_ct['amount']) > 0) {
+                $this->registrar_movimiento_caja(
+                    'egreso',
+                    'compra',
+                    floatval($data_ct['amount']),
+                    $code,
+                    'Pago a proveedor (crédito compra) '.$code,
+                    'Efectivo'
+                );
+            }
             
             //move_uploaded_file($_FILES["factura_img"]["tmp_name"], 'uploads/vouchers/' . $md5.str_replace(" ", "", $_FILES["factura_img"]["name"]));
         
@@ -5516,6 +5574,19 @@ function new_change()
         $this->insert_binnacle($message);
 
         $this->insert_notification($message, base64_encode('admin/egresos/'), 'ver_egresos', 'Egreso');
+
+        // Solo afecta caja física cuando sale de efectivo (origin = 0)
+        if (isset($data['origin']) && (string)$data['origin'] === '0') {
+            $cat = (!empty($data['table_reference']) && $data['table_reference'] === 'shopping') ? 'compra' : 'gasto';
+            $this->registrar_movimiento_caja(
+                'egreso',
+                $cat,
+                floatval($data['amount']),
+                !empty($data['reference_id']) ? $data['reference_id'] : ('EXP-'.$expense_id),
+                $data['details'],
+                'Efectivo'
+            );
+        }
     }
 
     function update_expense($ID)
@@ -8330,6 +8401,17 @@ function new_change()
                 $message    = 'Ha ingresado un nuevo gasto con id: '.$expense_id.' con concepto: '.$dat3['details'].' y con un total de: '.$dat3['amount'];
                 $this->insert_binnacle($message);
                 $this->insert_notification($message, base64_encode('admin/egresos/'), 'ver_egresos', 'Egreso');
+            }
+
+            if ((string)$dat3['origin'] === '0' && floatval($dat3['amount']) > 0) {
+                $this->registrar_movimiento_caja(
+                    'egreso',
+                    'compra',
+                    floatval($dat3['amount']),
+                    $this->input->post('code'),
+                    'Compra pagada en efectivo '.$this->input->post('code'),
+                    'Efectivo'
+                );
             }
     
             $this->send_email_shopping($provider_id, $this->input->post('code'));
@@ -12875,8 +12957,274 @@ function new_change()
         return $this->db->get_where('settings', array('type' => $type))->row()->description;
     }
 
+    function ensure_caja_tables()
+    {
+        if (!$this->db->table_exists('caja_sesion')) {
+            $this->db->query("CREATE TABLE IF NOT EXISTS `caja_sesion` (
+              `caja_sesion_id` INT(11) NOT NULL AUTO_INCREMENT,
+              `branch_id` INT(11) NOT NULL DEFAULT 0,
+              `user_open` INT(11) NOT NULL DEFAULT 0,
+              `user_close` INT(11) DEFAULT NULL,
+              `opened_at` DATETIME NOT NULL,
+              `closed_at` DATETIME DEFAULT NULL,
+              `monto_apertura` DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+              `monto_esperado` DECIMAL(14,2) DEFAULT NULL,
+              `monto_cierre` DECIMAL(14,2) DEFAULT NULL,
+              `diferencia` DECIMAL(14,2) DEFAULT NULL,
+              `status` TINYINT(1) NOT NULL DEFAULT 1,
+              `notes_open` TEXT NULL,
+              `notes_close` TEXT NULL,
+              PRIMARY KEY (`caja_sesion_id`),
+              KEY `idx_caja_branch_status` (`branch_id`, `status`),
+              KEY `idx_caja_user_status` (`branch_id`, `user_open`, `status`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+        } else {
+            // Asegurar índice por usuario si la tabla ya existía
+            $idx = $this->db->query("SHOW INDEX FROM `caja_sesion` WHERE Key_name = 'idx_caja_user_status'");
+            if ($idx->num_rows() == 0) {
+                $this->db->query("ALTER TABLE `caja_sesion` ADD KEY `idx_caja_user_status` (`branch_id`, `user_open`, `status`)");
+            }
+        }
+        if (!$this->db->table_exists('caja_movimiento')) {
+            $this->db->query("CREATE TABLE IF NOT EXISTS `caja_movimiento` (
+              `caja_movimiento_id` INT(11) NOT NULL AUTO_INCREMENT,
+              `caja_sesion_id` INT(11) NOT NULL,
+              `branch_id` INT(11) NOT NULL DEFAULT 0,
+              `user_id` INT(11) NOT NULL DEFAULT 0,
+              `tipo` VARCHAR(20) NOT NULL,
+              `categoria` VARCHAR(40) NOT NULL,
+              `metodo` VARCHAR(40) DEFAULT 'Efectivo',
+              `amount` DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+              `referencia` VARCHAR(120) DEFAULT NULL,
+              `detalle` TEXT NULL,
+              `created_at` DATETIME NOT NULL,
+              PRIMARY KEY (`caja_movimiento_id`),
+              KEY `idx_caja_mov_sesion` (`caja_sesion_id`),
+              KEY `idx_caja_mov_branch` (`branch_id`, `created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+        }
+    }
+
+    function get_caja_abierta($branch_id = null, $user_id = null)
+    {
+        $this->ensure_caja_tables();
+        if ($branch_id === null) {
+            $branch_id = $this->session->userdata('branch_id');
+        }
+        if ($user_id === null) {
+            $user_id = $this->session->userdata('login_user_id');
+        }
+        return $this->db->order_by('caja_sesion_id', 'DESC')
+            ->get_where('caja_sesion', array(
+                'branch_id' => (int)$branch_id,
+                'user_open' => (int)$user_id,
+                'status' => 1
+            ), 1)
+            ->row();
+    }
+
+    function abrir_caja($monto_apertura = null, $notes = null)
+    {
+        $this->ensure_caja_tables();
+        $branch_id = $this->session->userdata('branch_id');
+        $user_id = $this->session->userdata('login_user_id');
+        if ($this->get_caja_abierta($branch_id, $user_id)) {
+            return false;
+        }
+
+        if ($monto_apertura === null) {
+            $monto_apertura = floatval($this->input->post('monto_apertura'));
+        }
+        if ($notes === null) {
+            $notes = trim((string)$this->input->post('notes_open'));
+        }
+        if ($monto_apertura < 0) {
+            $monto_apertura = 0;
+        }
+
+        $data = array(
+            'branch_id' => $branch_id,
+            'user_open' => $user_id,
+            'opened_at' => date('Y-m-d H:i:s'),
+            'monto_apertura' => $monto_apertura,
+            'status' => 1,
+            'notes_open' => $notes
+        );
+        $this->db->insert('caja_sesion', $data);
+        $sesion_id = $this->db->insert_id();
+
+        $this->registrar_movimiento_caja(
+            'ingreso',
+            'apertura',
+            $monto_apertura,
+            'SES-'.$sesion_id,
+            'Apertura de caja',
+            'Efectivo',
+            $sesion_id
+        );
+
+        $message = 'Ha abierto su caja con monto inicial de '.$monto_apertura;
+        $this->insert_binnacle($message);
+        $this->insert_notification($message, base64_encode('admin/historial_cortes/'), 'registrar_cortes', 'Caja_apertura');
+        return $sesion_id;
+    }
+
+    function registrar_movimiento_caja($tipo, $categoria, $amount, $referencia = '', $detalle = '', $metodo = 'Efectivo', $sesion_id = null)
+    {
+        $this->ensure_caja_tables();
+        $branch_id = $this->session->userdata('branch_id');
+        $user_id = $this->session->userdata('login_user_id');
+        $sesion = null;
+        if ($sesion_id) {
+            $sesion = $this->db->get_where('caja_sesion', array(
+                'caja_sesion_id' => $sesion_id,
+                'user_open' => (int)$user_id
+            ))->row();
+        } else {
+            $sesion = $this->get_caja_abierta($branch_id, $user_id);
+        }
+        if (!$sesion) {
+            return false;
+        }
+
+        $amount = floatval($amount);
+        if ($amount <= 0 && $categoria !== 'apertura') {
+            return false;
+        }
+
+        $mov = array(
+            'caja_sesion_id' => $sesion->caja_sesion_id,
+            'branch_id' => $branch_id,
+            'user_id' => $this->session->userdata('login_user_id'),
+            'tipo' => $tipo,
+            'categoria' => $categoria,
+            'metodo' => $metodo ? $metodo : 'Efectivo',
+            'amount' => $amount,
+            'referencia' => $referencia,
+            'detalle' => $detalle,
+            'created_at' => date('Y-m-d H:i:s')
+        );
+        $this->db->insert('caja_movimiento', $mov);
+        return $this->db->insert_id();
+    }
+
+    function get_movimientos_caja($sesion_id)
+    {
+        $this->ensure_caja_tables();
+        return $this->db->order_by('caja_movimiento_id', 'ASC')
+            ->get_where('caja_movimiento', array('caja_sesion_id' => (int)$sesion_id))
+            ->result_array();
+    }
+
+    function get_resumen_caja_sesion($sesion = null)
+    {
+        if (!$sesion) {
+            $sesion = $this->get_caja_abierta();
+        }
+        $empty = array(
+            'apertura' => 0,
+            'venta_efectivo' => 0,
+            'abono_credito' => 0,
+            'venta_tarjeta' => 0,
+            'venta_transferencia' => 0,
+            'gasto' => 0,
+            'compra' => 0,
+            'ingresos_efectivo' => 0,
+            'egresos_efectivo' => 0,
+            'esperado' => 0,
+            'movimientos' => array()
+        );
+        if (!$sesion) {
+            return $empty;
+        }
+
+        $movimientos = $this->get_movimientos_caja($sesion->caja_sesion_id);
+        $res = $empty;
+        $res['movimientos'] = $movimientos;
+        $res['apertura'] = floatval($sesion->monto_apertura);
+
+        foreach ($movimientos as $mov) {
+            $amount = floatval($mov['amount']);
+            $cat = $mov['categoria'];
+            if (isset($res[$cat]) && $cat !== 'apertura') {
+                $res[$cat] += $amount;
+            }
+            if ($mov['tipo'] === 'ingreso' && $cat !== 'apertura' && strcasecmp($mov['metodo'], 'Efectivo') === 0) {
+                $res['ingresos_efectivo'] += $amount;
+            }
+            if ($mov['tipo'] === 'egreso' && strcasecmp($mov['metodo'], 'Efectivo') === 0) {
+                $res['egresos_efectivo'] += $amount;
+            }
+        }
+
+        $res['esperado'] = $res['apertura'] + $res['ingresos_efectivo'] - $res['egresos_efectivo'];
+        return $res;
+    }
+
+    function cerrar_caja()
+    {
+        $this->ensure_caja_tables();
+        $branch_id = $this->session->userdata('branch_id');
+        $user_id = $this->session->userdata('login_user_id');
+        $sesion = $this->get_caja_abierta($branch_id, $user_id);
+        if (!$sesion) {
+            return false;
+        }
+
+        $resumen = $this->get_resumen_caja_sesion($sesion);
+        $monto_cierre = floatval($this->input->post('ver_caja'));
+        $esperado = isset($this->input->post('caja_nueva')) && $this->input->post('caja_nueva') !== ''
+            ? floatval($this->input->post('caja_nueva'))
+            : floatval($resumen['esperado']);
+        $diferencia = abs($monto_cierre - $esperado);
+        $notes = trim((string)$this->input->post('notes'));
+
+        $upd = array(
+            'user_close' => $this->session->userdata('login_user_id'),
+            'closed_at' => date('Y-m-d H:i:s'),
+            'monto_esperado' => $esperado,
+            'monto_cierre' => $monto_cierre,
+            'diferencia' => $diferencia,
+            'status' => 0,
+            'notes_close' => $notes
+        );
+        $this->db->where('caja_sesion_id', $sesion->caja_sesion_id);
+        $this->db->update('caja_sesion', $upd);
+
+        // Compatibilidad con historial de cortes existente
+        $hist = array(
+            'user_id' => $this->session->userdata('login_user_id'),
+            'branch_id' => $branch_id,
+            'date_close' => date('Y-m-d'),
+            'time_close' => date('H:i:s'),
+            'amount_initial' => floatval($sesion->monto_apertura),
+            'amount_final' => $esperado,
+            'difference_cash' => $diferencia,
+            'difference_day' => floatval($resumen['ingresos_efectivo'] - $resumen['egresos_efectivo']),
+            'notes' => $notes
+        );
+        $this->db->insert('cash_history', $hist);
+
+        $caja_actual = floatval($this->input->post('caja_actual'));
+        $data2 = array('current_balance' => ($caja_actual + $esperado) - $diferencia);
+        $this->db->where('bank_id', '0');
+        $this->db->where('branch_id', $branch_id);
+        $this->db->update('account_bank', $data2);
+
+        $message = 'Ha cerrado la caja. Esperado: '.$esperado.' Contado: '.$monto_cierre.' Diferencia: '.$diferencia;
+        $this->insert_binnacle($message);
+        $this->insert_notification($message, base64_encode('admin/historial_cortes/'), 'ver_cortes', 'Corte_caja');
+        return true;
+    }
+
     function create_box_cut()
     {
+        // Nuevo flujo: cierre de sesión de caja
+        if ($this->get_caja_abierta()) {
+            return $this->cerrar_caja();
+        }
+
+        // Fallback legado (sin sesión abierta)
         $data['user_id']          = $this->session->userdata('login_user_id');
         $data['branch_id']        = $this->session->userdata('branch_id');
         $data['date_close']       = date('Y-m-d');

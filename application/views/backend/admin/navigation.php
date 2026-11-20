@@ -8,6 +8,7 @@
     $hoy = date("Y-m-d");
     $hora_actual = date("H:i");
     $close_today = $this->db->get_where('cash_history', array('date_close' => $hoy, 'branch_id' => $branch_id));
+    $caja_abierta = $this->crud_model->get_caja_abierta($branch_id, $this->session->userdata('login_user_id'));
 ?>
 <div id="kt_header" class="header header-fixed">
     <div class="header-wrapper rounded-top-xl d-flex flex-grow-1 align-items-center">
@@ -585,12 +586,18 @@
                     </ul>
                 </div>
             </div>
-            <?php if ($close_today->num_rows() == 0 && ($user_type == 1 || $permisos['registrar_cortes'] == 1)): ?>
+            <?php if ($user_type == 1 || $permisos['registrar_cortes'] == 1): ?>
             <div class="d-flex align-items-center py-3">
                 <div class="dropdown dropdown-inline" data-toggle="tooltip" data-placement="left">
-                    <a href="javascript:void(0)" onclick="showAjaxModal('<?php echo base_url();?>modal/popup/corte_caja/')" class="btn btn-danger font-weight-bold px-6" data-toggle="tooltip" data-original-title="Corte de caja" style="border-radius:25px; background-color: black !important; border-color: black !important;">
+                    <?php if ($caja_abierta): ?>
+                    <a href="javascript:void(0)" onclick="showAjaxModal('<?php echo base_url();?>modal/popup/corte_caja/')" class="btn btn-danger font-weight-bold px-6" data-toggle="tooltip" data-original-title="Cerrar caja" style="border-radius:25px; background-color: #F64E60 !important; border-color: #F64E60 !important;">
                         <i class="icon-2x la la-coins" style='font-size: 2.2rem !important;'></i>
                     </a>
+                    <?php else: ?>
+                    <a href="javascript:void(0)" onclick="showAjaxModal('<?php echo base_url();?>modal/popup/corte_caja/')" class="btn btn-success font-weight-bold px-6" data-toggle="tooltip" data-original-title="Abrir caja" style="border-radius:25px;">
+                        <i class="icon-2x la la-coins" style='font-size: 2.2rem !important;'></i>
+                    </a>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>

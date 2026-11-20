@@ -4287,10 +4287,34 @@ class Admin extends CI_Controller
         $this->admin_login();
         $this->ver_permisos('registrar_cortes');
 
-        $this->crud_model->create_box_cut();
-        $this->session->set_flashdata('flash_message' , "Se creo el corte de caja exitosamente");
-        $refer =  $this->agent->referrer();
+        $ok = $this->crud_model->create_box_cut();
+        if ($ok === false) {
+            $this->session->set_flashdata('error_message', "No hay una caja abierta para cerrar.");
+        } else {
+            $this->session->set_flashdata('flash_message', "Cierre de caja registrado correctamente.");
+        }
+        $refer = $this->agent->referrer();
         redirect($refer, 'refresh');
+    }
+
+    function caja($param1 = '')
+    {
+        $this->admin_login();
+        $this->ver_permisos('registrar_cortes');
+
+        if ($param1 == 'abrir') {
+            $id = $this->crud_model->abrir_caja();
+            if ($id === false) {
+                $this->session->set_flashdata('error_message', "Ya tienes una caja abierta. Debes cerrarla antes de abrir otra.");
+            } else {
+                $this->session->set_flashdata('flash_message', "Tu caja se abrió correctamente.");
+            }
+            $refer = $this->agent->referrer();
+            redirect($refer ? $refer : base_url().'admin/', 'refresh');
+            return;
+        }
+
+        redirect(base_url().'admin/', 'refresh');
     }
 
     function productos($param1 = '', $param2 = '')
