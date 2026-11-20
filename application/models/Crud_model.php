@@ -3656,29 +3656,48 @@ class Crud_model extends CI_Model {
         $data['num_products'] = $num_products;
         $data['products']     = json_encode($producto);
 
+        $es_credito = ($this->input->post('credito') == 1);
         $metodo = $this->input->post('metodo');
-        $total = $this->input->post('ttl');
+        if ($metodo == '') $metodo = 'Efectivo';
+        $total = floatval($this->input->post('ttl'));
         $data['total'] = $total;
         $data['metodo'] = $metodo;
 
-        if ($metodo == 'Efectivo') {
-            $pago = floatval($this->input->post('pago'));
-            $change = floatval($this->input->post('change'));
-            $data['total_pagado'] = $pago - $change;
-            $data['cambio'] = $change;
-        } elseif ($metodo == 'Tarjeta') {
-            $data['total_pagado'] = $total;
-            $data['no_documento'] = $this->input->post('voucher');
-        } elseif ($metodo == 'Transferencia') {
-            $data['total_pagado'] = $total;
-            $data['no_documento'] = $this->input->post('trans');
-        } elseif ($metodo == 'Cheque') {
-            $data['total_pagado'] = $total;
-            $data['no_documento'] = $this->input->post('cheque');
+        if ($es_credito) {
+            $abono = floatval($this->input->post('pago'));
+            if ($abono < 0) $abono = 0;
+            if ($abono > $total) $abono = $total;
+            $data['total_pagado'] = $abono;
+            $data['cambio'] = 0;
+            if ($metodo == 'Tarjeta') {
+                $data['no_documento'] = $this->input->post('voucher');
+            } elseif ($metodo == 'Transferencia') {
+                $data['no_documento'] = $this->input->post('trans');
+            } elseif ($metodo == 'Cheque') {
+                $data['no_documento'] = $this->input->post('cheque');
+            }
+            $data['credito'] = 1;
+            $data['estado']  = 1;
+        } else {
+            if ($metodo == 'Efectivo') {
+                $pago = floatval($this->input->post('pago'));
+                $change = floatval($this->input->post('change'));
+                $data['total_pagado'] = $pago - $change;
+                $data['cambio'] = $change;
+            } elseif ($metodo == 'Tarjeta') {
+                $data['total_pagado'] = $total;
+                $data['no_documento'] = $this->input->post('voucher');
+            } elseif ($metodo == 'Transferencia') {
+                $data['total_pagado'] = $total;
+                $data['no_documento'] = $this->input->post('trans');
+            } elseif ($metodo == 'Cheque') {
+                $data['total_pagado'] = $total;
+                $data['no_documento'] = $this->input->post('cheque');
+            }
+            $data['credito'] = 0;
+            $data['estado']  = 2;
         }
 
-        $data['credito']   = 0;
-        $data['estado']    = 2;
         $data['type']      = $cliente_type;
         $data['client_id'] = $client_id;
         $data['name']      = $cliente ? ($cliente->name.', '.$cliente->last_name) : 'Ajuste inventario';
@@ -3690,24 +3709,50 @@ class Crud_model extends CI_Model {
 
         $this->db->insert('sales', $data);
 
-        $datain = array();
-        $datain['date']        = $data['date'];
-        $datain['week']        = date('W');
-        $datain['month']       = date('m');
-        $datain['year']        = date('Y');
-        $datain['datetime']    = date('Y-m-d H:i');
-        $datain['amount']      = $total;
-        $datain['responsable'] = $responsable;
-        $datain['sale_ref']    = $code;
-        $datain['origin']      = $metodo;
-        $datain['details']     = $data['details'];
-        $datain['branch_id']   = $this->session->userdata('branch_id');
-        $datain['status']      = 1;
-        $this->db->insert('income', $datain);
+        if ($es_credito) {
+            $abono = floatval($data['total_pagado']);
+            if ($abono > 0) {
+                $datain = array();
+                $datain['date']        = $data['date'];
+                $datain['week']        = date('W');
+                $datain['month']       = date('m');
+                $datain['year']        = date('Y');
+                $datain['datetime']    = date('Y-m-d H:i');
+                $datain['amount']      = $abono;
+                $datain['responsable'] = $responsable;
+                $datain['sale_ref']    = $code;
+                $datain['origin']      = $metodo;
+                $datain['details']     = $data['details'].' Abono inicial a crédito.';
+                $datain['branch_id']   = $this->session->userdata('branch_id');
+                $datain['status']      = 1;
+                $this->db->insert('income', $datain);
+            }
+        } else {
+            $datain = array();
+            $datain['date']        = $data['date'];
+            $datain['week']        = date('W');
+            $datain['month']       = date('m');
+            $datain['year']        = date('Y');
+            $datain['datetime']    = date('Y-m-d H:i');
+            $datain['amount']      = $total;
+            $datain['responsable'] = $responsable;
+            $datain['sale_ref']    = $code;
+            $datain['origin']      = $metodo;
+            $datain['details']     = $data['details'];
+            $datain['branch_id']   = $this->session->userdata('branch_id');
+            $datain['status']      = 1;
+            $this->db->insert('income', $datain);
+        }
 
         $message = 'Ha creado un ajuste de inventario con código: '.$code;
         $this->insert_binnacle($message);
         $this->insert_notification($message, base64_encode('admin/detalles_ventas/'.$code), 'ver_ventas', 'Ventas_update');
+
+        if ($es_credito) {
+            $message = 'Ha creado un ajuste de inventario con código: '.$code.' a disposición de crédito';
+            $this->insert_notification($message, base64_encode('admin/detalles_ventas/'.$code), 'creditos', 'Credito');
+            return 1;
+        }
 
         return 0;
     }

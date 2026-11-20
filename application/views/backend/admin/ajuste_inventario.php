@@ -62,55 +62,95 @@ $num_products = count($ajuste_products);
                                     </div>
                                     <div class="col-sm-4">
                                         <div class="form-group">
-                                            <label>Método de pago <span class="text-danger">*</span></label>
-                                            <select class="form-control" id="metodo" name="metodo" required onchange="metodo_pago(this.value)">
-                                                <option value="Efectivo" selected>Efectivo</option>
-                                                <option value="Tarjeta">Tarjeta de crédito / débito</option>
-                                                <option value="Transferencia">Transferencia / Depósito</option>
-                                                <option value="Cheque">Cheque</option>
-                                            </select>
+                                            <label>Venta al crédito</label>
+                                            <span class="switch switch-sm d-block mt-2">
+                                                <label>
+                                                    <input type="checkbox" name="credito" id="credito" value="1" onchange="toggleCredito()" />
+                                                    <span></span>
+                                                </label>
+                                            </span>
+                                            <small class="text-muted">Si se activa, el ajuste queda como crédito del cliente.</small>
                                         </div>
                                     </div>
-                                    <div class="col-lg-6 efectivo">
-                                        <div class="form-group">
-                                            <label>Pago con:</label>
-                                            <input type="number" value="" min="0" step="any" class="form-control" name="pago" id="pago" oninput="cambio()" />
+                                    <div class="col-sm-12" id="pago-box">
+                                        <div class="row">
+                                            <div class="col-sm-4">
+                                                <div class="form-group">
+                                                    <label>Método de pago <span class="text-danger pago-req">*</span></label>
+                                                    <select class="form-control" id="metodo" name="metodo" required onchange="metodo_pago(this.value)">
+                                                        <option value="Efectivo" selected>Efectivo</option>
+                                                        <option value="Tarjeta">Tarjeta de crédito / débito</option>
+                                                        <option value="Transferencia">Transferencia / Depósito</option>
+                                                        <option value="Cheque">Cheque</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-4 efectivo">
+                                                <div class="form-group">
+                                                    <label>Pago con:</label>
+                                                    <input type="number" value="" min="0" step="any" class="form-control" name="pago" id="pago" oninput="cambio()" />
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-4 efectivo">
+                                                <div class="form-group">
+                                                    <label>Cambio:</label><br>
+                                                    <span class="font-weight-boldest font-size-h6 line-height-sm" id="change"><?php echo $moneda;?>0.00</span>
+                                                    <input type="hidden" value="0" class="form-control" id="changee" name="change" />
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-12 tarjeta">
+                                                <div class="form-group">
+                                                    <label>Voucher</label>
+                                                    <input type="number" value="" min="0" step="any" class="form-control" placeholder="Ingrese el voucher" name="voucher" id="voucher" />
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-12 trans">
+                                                <div class="form-group">
+                                                    <label>No. Transferencia</label>
+                                                    <input type="number" value="" min="0" step="any" class="form-control" placeholder="Ingrese el # de boleta" name="trans" id="trans" />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label><b>Origen:</b></label>
+                                                    <select class="form-control" name="origin" id="origin">
+                                                        <?php $cuentas = $this->crud_model->get_accounts_to_pay();
+                                                        foreach($cuentas->result_array() as $cts):?>
+                                                        <option value="<?php echo $cts['account_bank_id'];?>">
+                                                            <?php if($cts['bank_id'] > 0) echo '('.$this->db->get_where('bank', array('bank_id' => $cts['bank_id']))->row()->name.') - '; echo $cts['name_account'];?>
+                                                        </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-12 cheque">
+                                                <div class="form-group">
+                                                    <label>No. Cheque</label>
+                                                    <input type="number" value="" min="0" step="any" class="form-control" placeholder="Ingrese el # de cheque" name="cheque" id="cheque" />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-lg-6 efectivo">
-                                        <div class="form-group">
-                                            <label>Cambio:</label><br>
-                                            <span class="font-weight-boldest font-size-h6 line-height-sm" id="change"><?php echo $moneda;?>0.00</span>
-                                            <input type="hidden" value="0" class="form-control" id="changee" name="change" />
+                                    <div class="col-sm-12" id="credito-abono" style="display:none;">
+                                        <div class="alert alert-light-info mb-3">
+                                            Crédito activado. Puedes registrar un <b>abono inicial</b> opcional; el resto queda pendiente.
                                         </div>
-                                    </div>
-                                    <div class="col-lg-12 tarjeta">
-                                        <div class="form-group">
-                                            <label>Voucher</label>
-                                            <input type="number" value="" min="0" step="any" class="form-control" placeholder="Ingrese el voucher" name="voucher" id="voucher" />
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-12 trans">
-                                        <div class="form-group">
-                                            <label>No. Transferencia</label>
-                                            <input type="number" value="" min="0" step="any" class="form-control" placeholder="Ingrese el # de boleta" name="trans" id="trans" />
-                                        </div>
-                                        <div class="form-group">
-                                            <label><b>Origen:</b></label>
-                                            <select class="form-control" name="origin" id="origin">
-                                                <?php $cuentas = $this->crud_model->get_accounts_to_pay();
-                                                foreach($cuentas->result_array() as $cts):?>
-                                                <option value="<?php echo $cts['account_bank_id'];?>">
-                                                    <?php if($cts['bank_id'] > 0) echo '('.$this->db->get_where('bank', array('bank_id' => $cts['bank_id']))->row()->name.') - '; echo $cts['name_account'];?>
-                                                </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-12 cheque">
-                                        <div class="form-group">
-                                            <label>No. Cheque</label>
-                                            <input type="number" value="" min="0" step="any" class="form-control" placeholder="Ingrese el # de cheque" name="cheque" id="cheque" />
+                                        <div class="row">
+                                            <div class="col-sm-4">
+                                                <div class="form-group">
+                                                    <label>Método del abono</label>
+                                                    <select class="form-control" id="metodo_credito" onchange="metodo_pago(this.value)">
+                                                        <option value="Efectivo" selected>Efectivo</option>
+                                                        <option value="Tarjeta">Tarjeta</option>
+                                                        <option value="Transferencia">Transferencia</option>
+                                                        <option value="Cheque">Cheque</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <div class="form-group">
+                                                    <label>Abono inicial</label>
+                                                    <input type="number" value="0" min="0" step="any" class="form-control" name="pago_credito" id="pago_credito" oninput="syncPagoCredito()" />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -302,6 +342,36 @@ $(document).ready(function() {
     $('#buscarProducto').on('input', filtrarProductos);
     actualizarPreview();
 });
+
+function toggleCredito() {
+    var esCredito = $('#credito').is(':checked');
+    if (esCredito) {
+        $('#pago-box').hide(300);
+        $('#credito-abono').show(300);
+        $('#metodo').removeAttr('required');
+        $('#pago, #voucher, #trans, #cheque').removeAttr('required');
+        $('.pago-req').hide();
+        syncPagoCredito();
+    } else {
+        $('#credito-abono').hide(300);
+        $('#pago-box').show(300);
+        $('#metodo').attr('required', true);
+        $('.pago-req').show();
+        metodo_pago($('#metodo').val());
+        var ttl = $('#ttl').val();
+        $('#pago').val(ttl);
+        cambio();
+    }
+}
+
+function syncPagoCredito() {
+    var abono = parseFloat($('#pago_credito').val()) || 0;
+    var metodo = $('#metodo_credito').val();
+    $('#metodo').val(metodo);
+    $('#pago').val(abono.toFixed(2));
+    $('#changee').val('0');
+    metodo_pago(metodo);
+}
 
 $('#ajusteForm').on('keydown', function(e) {
     if (e.key === 'Enter' && e.target.type !== 'textarea') {
