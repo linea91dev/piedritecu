@@ -121,9 +121,6 @@
                             P/U
                         </td>
                         <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: center;">
-                            Descuento
-                        </td>
-                        <td style="border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black;background: #eee;font-style:italic; font-weight:bold;padding:5px;text-align: center;">
                             Subtotal
                         </td>
                     </tr>
@@ -150,16 +147,13 @@
                         <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; font-size: 12px; text-align:center;">
                             <?php echo $moneda.number_format($pro['price_buy'],2,'.',',');?>
                         </td>
-                        <td style="padding:10px; border-right: 1px solid black;border-bottom: 1px solid black; border-left: 1px solid black; border-top: 1px solid black; font-size: 12px; text-align:center;">
-                            <?php echo ($pro['discount'] == "") ? number_format(0,2,'.',',') : number_format($pro['discount'],2,'.',',') ; echo '%';?>
-                        </td>
                         <td style="padding:10px;font-size: 12px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;text-align:center">
                             <?php echo $moneda.number_format($pro['sub'],2,'.',',') ;?>
                         </td>
                     </tr>
                     <?php endforeach;?>
                     <tr>
-                        <td colspan="7" 
+                        <td colspan="6" 
                         style="padding:15px;font-size: 20px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;text-align:right">
                             <b>Total:</b> <span style="border-bottom: 1px double;"><?php echo $moneda.number_format($datoss['total'],2,'.',',');?></span>
                         </td>
