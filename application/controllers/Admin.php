@@ -1182,6 +1182,9 @@ class Admin extends CI_Controller
         $this->admin_login();
         $this->ver_permisos('completar_solicitud');
 
+        // Subórdenes creadas solo en shopping: generar request si falta
+        $this->crud_model->ensure_request_from_shopping($param1);
+
         $page_data['code']       = $param1;
         $page_data['page_name']  = 'nueva_compra_s';
         $page_data['page_title'] = "Nueva compra a proveedor";

@@ -1,10 +1,26 @@
-<?php $data = $this->db->get_where('request', array('code'=>$code)); $moneda = $this->crud_model->get_info("moneda");?>
+<?php
+$moneda = $this->crud_model->get_info("moneda");
+$data = $this->crud_model->ensure_request_from_shopping($code);
+if ($data === false) {
+    $data = $this->db->get_where('request', array('code'=>$code));
+}
+$req_row = ($data && $data->num_rows() > 0) ? $data->row() : null;
+$num_products = $req_row ? (int)$req_row->num_products : 0;
+$pro = array();
+if ($req_row && $req_row->products != "" && $req_row->products != null) {
+    $pro = json_decode($req_row->products, true);
+    if (!is_array($pro)) $pro = array();
+}
+?>
 <div class="container-fluid">
     <div class="row">
         <div class="col-sm-12">
             <div class="card ">
                 <div class="card-body">
                     <h3 class="card-label text-info">Productos a registrar</h3>
+                    <?php if (!$req_row || $num_products <= 0): ?>
+                    <div class="alert alert-danger">No se encontraron productos para esta orden (<?php echo htmlspecialchars($code);?>).</div>
+                    <?php endif; ?>
                     <div class="table-responsive">
                         <table class="table table-padded">
                             <thead>
@@ -21,22 +37,19 @@
                             <form class="form" action="<?php echo base_url().'admin/compras/complete/'.$code;?>" method="POST"
                             enctype="multipart/form-data">
                             <tbody id='products'>
-                                <?php for ($i=0; $i < $data->row()->num_products ; $i++): 
-                                        if ($data->row()->products != "" || $data->row()->products != null) {
-                                            $pro = json_decode($data->row()->products,true);
-                                        } else {
-                                            $pro = array();
-                                        }
-                                    ?>
+                                <?php for ($i=0; $i < $num_products ; $i++):
+                                    if (!isset($pro[$i])) continue;
+                                    $p_row = $this->db->get_where('products', array('products_id'=>$pro[$i]['product']))->row();
+                                ?>
                                 <tr>
                                     <td>
                                         <span class="switch switch-outline switch-icon switch-success">
                                             <label>
-                                                <input type="checkbox" id="available-<?php echo $i;?>" name="available[]" value='1' <?php if($pro[$i]['available'] == 1) echo "checked";?> disabled><span></span>
+                                                <input type="checkbox" id="available-<?php echo $i;?>" name="available[]" value='1' <?php if(isset($pro[$i]['available']) && (int)$pro[$i]['available'] === 1) echo "checked";?> disabled><span></span>
                                             </label>
                                         </span>
                                     </td>
-                                    <td><?php echo $this->db->get_where('products', array('products_id'=>$pro[$i]['product']))->row()->name ;?>
+                                    <td><?php echo $p_row ? $p_row->name : ('Producto '.$pro[$i]['product']);?>
                                         <input type="hidden" name="name[]" value='<?php echo $pro[$i]['product'];?>'>
                                     </td>
                                     <td class='text-center'>
@@ -86,13 +99,13 @@ $(document).ready(function() {
         placeholder: 'Seleccionar',
         allowClear: true
     });
-    <?php for ($i=0; $i <$data->row()->num_products ; $i++):?>
+    <?php for ($i=0; $i < $num_products ; $i++):?>
     sum(<?php echo $i;?>)
     <?php endfor;?>
 });
 
 function promotionProducts() {
-    <?php for ($i=0; $i < $data->row()->num_products ; $i++):?>
+    <?php for ($i=0; $i < $num_products ; $i++):?>
     if ($("#promocion").is(":checked")) {
         $("#price_buy-<?php echo $i;?>").data('old', $("#price_buy-<?php echo $i;?>").val());
         $("#price_buy-<?php echo $i;?>").val(0);

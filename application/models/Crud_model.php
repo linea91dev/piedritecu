@@ -8718,6 +8718,69 @@ function new_change()
             ->result_array();
     }
 
+    /**
+     * Asegura fila en `request` para completar compra (nueva_compra_s).
+     * Si solo existe en shopping (p.ej. subórdenes), la crea con el formato esperado.
+     */
+    function ensure_request_from_shopping($code)
+    {
+        $code = trim((string) $code);
+        if ($code === '') return false;
+
+        $existing = $this->db->get_where('request', array('code' => $code));
+        if ($existing->num_rows() > 0) {
+            return $existing;
+        }
+
+        $shopping = $this->db->get_where('shopping', array('code' => $code, 'status' => 1))->row();
+        if (!$shopping) {
+            return false;
+        }
+
+        $raw = json_decode($shopping->products, true);
+        if (!is_array($raw)) $raw = array();
+
+        $products_request = array();
+        foreach ($raw as $p) {
+            $qty = isset($p['amount_give']) ? floatval($p['amount_give'])
+                : (isset($p['amount']) ? floatval($p['amount']) : 0);
+            $req_qty = isset($p['amount_request']) ? floatval($p['amount_request']) : $qty;
+            $price = isset($p['price_buy']) ? floatval($p['price_buy']) : 0;
+            $sub = isset($p['sub']) ? floatval($p['sub']) : round($qty * $price, 2);
+            $available = isset($p['available']) ? (int)$p['available'] : 1;
+            if ($qty <= 0 && $available !== 1) continue;
+
+            $products_request[] = array(
+                'product' => (int)$p['product'],
+                'available' => $available ? 1 : 0,
+                'amount_request' => $req_qty > 0 ? $req_qty : $qty,
+                'amount_give' => $qty > 0 ? $qty : $req_qty,
+                'price_buy' => $price,
+                'sub' => $sub
+            );
+        }
+
+        $data = array(
+            'code' => $code,
+            'responsable' => $shopping->responsable,
+            'date_request' => !empty($shopping->date_request) ? $shopping->date_request : date('Y-m-d'),
+            'date' => !empty($shopping->date) ? $shopping->date : date('Y-m-d'),
+            'address' => '',
+            'details' => isset($shopping->details) ? $shopping->details : '',
+            'note' => '',
+            'total' => $shopping->total,
+            'location' => $shopping->location,
+            'destiny' => isset($shopping->destiny) && $shopping->destiny !== '' && $shopping->destiny !== null
+                ? $shopping->destiny : $shopping->location,
+            'provider' => $shopping->provider,
+            'products' => json_encode($products_request),
+            'num_products' => count($products_request)
+        );
+        $this->db->insert('request', $data);
+
+        return $this->db->get_where('request', array('code' => $code));
+    }
+
     function change_shopping_provider($code)
     {
         $code = trim((string) $code);
@@ -8913,6 +8976,36 @@ function new_change()
                 'factura' => isset($madre->factura) ? $madre->factura : ''
             );
             $this->db->insert('shopping', $child);
+
+            // request requerido por nueva_compra_s / complete_shopping
+            $req_products = array();
+            foreach ($group['products'] as $gp) {
+                $req_products[] = array(
+                    'product' => $gp['product'],
+                    'available' => 1,
+                    'amount_request' => $gp['amount'],
+                    'amount_give' => $gp['amount'],
+                    'price_buy' => $gp['price_buy'],
+                    'sub' => $gp['sub']
+                );
+            }
+            $this->db->insert('request', array(
+                'code' => $child_code,
+                'responsable' => $madre->responsable,
+                'date_request' => isset($madre->date_request) ? $madre->date_request : date('Y-m-d'),
+                'date' => date('Y-m-d'),
+                'address' => '',
+                'details' => trim(($madre->details ? $madre->details.' ' : '').'Suborden de '.$code),
+                'note' => '',
+                'total' => round($group['total'], 2),
+                'location' => $madre->location,
+                'destiny' => isset($madre->destiny) && $madre->destiny !== '' && $madre->destiny !== null
+                    ? $madre->destiny : $madre->location,
+                'provider' => $provid,
+                'products' => json_encode($req_products),
+                'num_products' => count($req_products)
+            ));
+
             $child_codes[] = $child_code;
         }
 
