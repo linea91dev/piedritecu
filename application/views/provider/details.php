@@ -2,14 +2,39 @@
 <html lang="es">
 
 <head>
-    <title>Detalles de la solicitud |
+    <title>Cotización y asignación |
         <?php echo strtoupper($this->db->get_where('settings', array('type'=>'name'))->row()->description);?> </title>
     <meta charset="utf-8">
     <meta name="description" content="Updates and statistics" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <?php include 'topcss.php';?>
+    <style>
+        .alloc-row td { vertical-align: middle !important; }
+        .qty-ok { color: #1bc5bd; font-weight: 700; }
+        .qty-bad { color: #f64e60; font-weight: 700; }
+        #preview-providers { position: sticky; top: 20px; }
+        .product-block { border: 1px solid #ebedf3; border-radius: 6px; padding: 12px; margin-bottom: 16px; background: #fcfcfd; }
+    </style>
 </head>
-<?php $moneda = $this->crud_model->get_info("moneda"); ?>
+<?php
+$moneda = $this->crud_model->get_info("moneda");
+$this->crud_model->ensure_shopping_parent_code();
+$data = $this->db->get_where('shopping', array('code' => $code));
+$shopping_row = $data->row();
+$is_admin = ($this->session->userdata('admin_login') == 1);
+$providers = $this->db->order_by('name', 'ASC')->get_where('provider', array('status' => 1))->result_array();
+$provider_options = '';
+foreach ($providers as $prov) {
+    $provider_options .= '<option value="'.$prov['provider_id'].'">'.htmlspecialchars($prov['name'], ENT_QUOTES).'</option>';
+}
+$pro = array();
+if ($shopping_row && ($shopping_row->products != "" && $shopping_row->products != null)) {
+    $pro = json_decode($shopping_row->products, true);
+    if (!is_array($pro)) $pro = array();
+}
+$children = $shopping_row ? $this->crud_model->get_shopping_children($code) : array();
+$already_split = !empty($children);
+?>
 <body id="kt_body" class="header-fixed header-mobile-fixed sidebar-enabled page-loading">
     <?php include 'mobile.php';?>
     <div class="d-flex flex-column flex-root">
@@ -20,172 +45,164 @@
                 <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
                     <div class="d-flex flex-column-fluid">
                         <div class="container-fluid">
-                            <?php $data = $this->db->get_where('shopping', array('code' => $code)) ;?>
-                            <h3>¡Hola!
-                                <b><?php echo strtoupper($this->db->get_where('settings', array('type'=>'name'))->row()->description);?></b>
-                                te ha enviado una solicitud de compra.
-                            </h3>
-                            <?php
-                            $shopping_row = $data->row();
-                            $current_provider = $this->db->get_where('provider', array('provider_id' => $shopping_row->provider))->row();
-                            ?>
-                            <?php if ((int)$shopping_row->type !== 1): ?>
-                            <div class="row mb-4">
-                                <div class="col-sm-12">
-                                    <div class="card border-warning">
-                                        <div class="card-body">
-                                            <h5 class="text-warning mb-3">Cambiar proveedor</h5>
-                                            <p class="mb-2">
-                                                Proveedor actual:
-                                                <b><?php echo $current_provider ? $current_provider->name : 'Sin proveedor'; ?></b>
-                                            </p>
-                                            <form method="POST" action="<?php echo base_url();?>provider/detalles_compra/change_provider">
-                                                <input type="hidden" name="code" value="<?php echo $code;?>">
-                                                <div class="row align-items-end">
-                                                    <div class="col-sm-8">
-                                                        <label><b>Nuevo proveedor</b></label>
-                                                        <select class="form-control" name="provider" required>
-                                                            <option value="">Seleccionar</option>
-                                                            <?php
-                                                            $providers = $this->db->order_by('name', 'ASC')->get_where('provider', array('status' => 1))->result_array();
-                                                            foreach ($providers as $prov):
-                                                            ?>
-                                                            <option value="<?php echo $prov['provider_id'];?>" <?php if((int)$prov['provider_id'] === (int)$shopping_row->provider) echo 'selected';?>>
-                                                                <?php echo $prov['name'];?>
-                                                            </option>
-                                                            <?php endforeach;?>
-                                                        </select>
-                                                        <small class="text-muted">Si otro proveedor ofrece mejor precio, cámbialo aquí y reenvía la solicitud.</small>
-                                                    </div>
-                                                    <div class="col-sm-4">
-                                                        <button type="submit" class="btn btn-warning font-weight-bolder btn-block"
-                                                            onclick="return confirm('¿Cambiar el proveedor de esta solicitud?');">
-                                                            Cambiar proveedor
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </form>
+                            <?php if (!$shopping_row): ?>
+                            <div class="alert alert-danger">Solicitud no encontrada.</div>
+                            <?php else: ?>
+
+                            <h3 class="mb-2">Cotización y asignación de compra</h3>
+                            <p class="text-muted mb-4">
+                                Asigna proveedor, cantidad y precio por producto. Puedes partir cantidades entre varios proveedores.
+                                Al confirmar se generan <b>subórdenes</b> y se conserva el historial de la solicitud madre.
+                            </p>
+
+                            <?php if ($this->session->flashdata('flash_message')): ?>
+                            <div class="alert alert-success"><?php echo $this->session->flashdata('flash_message');?></div>
+                            <?php endif; ?>
+                            <?php if ($this->session->flashdata('error_message')): ?>
+                            <div class="alert alert-danger"><?php echo $this->session->flashdata('error_message');?></div>
+                            <?php endif; ?>
+
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4"><b>Código:</b> <?php echo $code;?></div>
+                                        <div class="col-md-4"><b>Encargado:</b> <?php echo ucwords($this->crud_model->getName('admin',$shopping_row->responsable));?></div>
+                                        <div class="col-md-4"><b>Fecha solicitud:</b>
+                                            <?php
+                                            setlocale(LC_TIME, "spanish");
+                                            $Nueva_Fecha = date("d-m-Y", strtotime($shopping_row->date_request));
+                                            echo strftime("%d de %B de %Y", strtotime($Nueva_Fecha));
+                                            ?>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <?php elseif ($current_provider): ?>
-                            <div class="alert alert-secondary mb-4">
-                                <b>Proveedor:</b> <?php echo $current_provider->name;?>
+
+                            <?php if ($already_split): ?>
+                            <div class="alert alert-warning">
+                                Esta solicitud ya fue dividida. Subórdenes:
+                                <?php foreach ($children as $ch): ?>
+                                <a href="<?php echo base_url().'admin/detalles_compra/'.$ch['code'];?>" class="font-weight-bold mr-2">
+                                    <?php echo $ch['code'];?>
+                                </a>
+                                <?php endforeach; ?>
+                                <div class="mt-2">
+                                    <a href="<?php echo base_url().'admin/detalles_compra/'.$code;?>" class="btn btn-sm btn-light-primary">Ver solicitud madre</a>
+                                </div>
                             </div>
                             <?php endif; ?>
-                            <form class="form" action="<?php echo base_url(),'provider/request/create/'.$code;?>"
-                                method="POST" enctype="multipart/form-data">
+
+                            <?php if ($is_admin && (int)$shopping_row->type !== 1): ?>
+                            <form method="POST" action="<?php echo base_url();?>provider/detalles_compra/split_confirm" id="splitForm" onsubmit="return validateSplit();">
+                                <input type="hidden" name="code" value="<?php echo $code;?>">
                                 <div class="row">
-                                    <div class="col-sm-12">
+                                    <div class="col-lg-8">
                                         <div class="card">
                                             <div class="card-body">
-                                                <div class="row">
+                                                <h3 class="card-label text-info">Productos a asignar</h3>
+                                                <div class="alert alert-info">
+                                                    La suma de cantidades por producto debe igualar exactamente la cantidad solicitada.
+                                                </div>
 
-                                                    <div class="col-sm-12 col-lg-4 ">
-                                                        <b>Contáctanos:</b> <a
-                                                            href="tel:<?php echo $this->db->get_where('settings', array('type'=>'phone'))->row()->description;?>">
-                                                            <?php echo $this->db->get_where('settings', array('type'=>'phone'))->row()->description;?></a>
+                                                <?php
+                                                for ($i = 0; $i < count($pro); $i++):
+                                                    $prod_id = $pro[$i]['product'];
+                                                    $prod_row = $this->db->get_where('products', array('products_id' => $prod_id))->row();
+                                                    $prod_name = $prod_row ? $prod_row->name : ('Producto '.$prod_id);
+                                                    $req_qty = floatval($pro[$i]['amount']);
+                                                    $default_price = isset($pro[$i]['price_buy']) ? floatval($pro[$i]['price_buy']) : 0;
+                                                ?>
+                                                <div class="product-block" data-product-index="<?php echo $i;?>" data-product-id="<?php echo $prod_id;?>" data-req="<?php echo $req_qty;?>">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <div>
+                                                            <b><?php echo htmlspecialchars($prod_name);?></b>
+                                                            <div class="text-muted">Solicitado: <span class="req-qty"><?php echo number_format($req_qty, 2, '.', '');?></span></div>
+                                                        </div>
+                                                        <div>
+                                                            Asignado: <span class="assigned-qty qty-bad" id="assigned-<?php echo $i;?>">0.00</span>
+                                                            <button type="button" class="btn btn-sm btn-light-primary ml-2" onclick="addAlloc(<?php echo $i;?>)">+ Asignación</button>
+                                                        </div>
                                                     </div>
-                                                    <div class="col-sm-12 col-lg-4 ">
-                                                        <b>Encargado de la compra:</b>
-                                                        <?php echo ucwords($this->crud_model->getName('admin',$data->row()->responsable));?>
-                                                        <input type="hidden" name="responsable"
-                                                            value='<?php echo $data->row()->responsable;?>'>
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm mb-0">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Proveedor</th>
+                                                                    <th style="width:110px">Cantidad</th>
+                                                                    <th style="width:120px">P/U</th>
+                                                                    <th style="width:120px">Subtotal</th>
+                                                                    <th style="width:50px">-</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody class="alloc-body" id="alloc-body-<?php echo $i;?>">
+                                                                <tr class="alloc-row">
+                                                                    <td>
+                                                                        <input type="hidden" name="product[]" value="<?php echo $prod_id;?>">
+                                                                        <select class="form-control form-control-sm provider-select" name="provider[]" required>
+                                                                            <option value="">Seleccionar</option>
+                                                                            <?php echo $provider_options; ?>
+                                                                        </select>
+                                                                    </td>
+                                                                    <td>
+                                                                        <input type="number" step="any" min="0.01" class="form-control form-control-sm amount-input" name="amount[]" value="<?php echo number_format($req_qty, 2, '.', '');?>" required oninput="recalcProduct(<?php echo $i;?>)">
+                                                                    </td>
+                                                                    <td>
+                                                                        <input type="number" step="0.01" min="0" class="form-control form-control-sm price-input" name="price_buy[]" value="<?php echo number_format($default_price, 2, '.', '');?>" required oninput="recalcProduct(<?php echo $i;?>)">
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="sub-label"><?php echo $moneda;?>0.00</span>
+                                                                        <input type="hidden" class="sub-input" name="sub[]" value="0">
+                                                                    </td>
+                                                                    <td>
+                                                                        <button type="button" class="btn btn-sm btn-light-danger" onclick="removeAlloc(this, <?php echo $i;?>)">x</button>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
                                                     </div>
-                                                    <div class="col-sm-12 col-lg-4 ">
-                                                        <b>Código de solicitud:</b> <?php echo $code;?>
-                                                    </div>
-                                                    <div class="col-sm-12 col-lg-12 ">
-                                                        <span><b>Fecha de solicitud:</b> <?php setlocale(LC_TIME, "spanish");
-                                                                $Nueva_Fecha = date("d-m-Y", strtotime( $data->row()->date_request ));				
-                                                                $Mes_Anyo = strftime("%d de %B de %Y", strtotime($Nueva_Fecha)); 
-                                                                echo $Mes_Anyo;?>
-                                                        </span>
-                                                        <input type="hidden" name="date_request"
-                                                            value='<?php echo $data->row()->date_request ;?>'>
-                                                    </div>
+                                                </div>
+                                                <?php endfor; ?>
+
+                                                <?php if (count($pro) == 0): ?>
+                                                <div class="text-center p-5 text-muted">Sin productos en la solicitud.</div>
+                                                <?php endif; ?>
+
+                                                <div class="text-right mt-4">
+                                                    <button type="submit" class="btn btn-warning font-weight-bolder" <?php if($already_split) echo 'onclick="return confirm(\'Ya existen subórdenes. Se regenerarán las no completadas. ¿Continuar?\');"';?>>
+                                                        Confirmar y generar subórdenes
+                                                    </button>
+                                                    <a href="<?php echo base_url().'admin/detalles_compra/'.$code;?>" class="btn btn-light font-weight-bolder">Cancelar</a>
                                                 </div>
                                             </div>
                                         </div>
-                                        <br>
                                     </div>
-                                    <div class="col-sm-12">
-                                        <div class="card ">
-                                            <div class="card-body">
-                                                <h3 class="card-label text-info">Productos solicitados:</h3><br>
-                                                <div class="alert alert-info">Tienes la opción de <b>cantidad
-                                                        ofrecida</b> si no posees la cantidad que tu cliente solicitó,
-                                                    si la modificas, o si marcas el botón al tener el producto disponible, enviaremos una notificación a
-                                                    <b><?php echo $this->db->get_where('settings', array('type'=>'name'))->row()->description;?></b>
-                                                    informando del cambio.
-                                                </div>
-                                                <div class="table-responsive">
-                                                    <table class="table table-padded">
-                                                        <thead>
-                                                            <tr>
-                                                                <th class='text-left'>Disponible</th>
-                                                                <th class='text-left'>Producto</th>
-                                                                <th class='text-center'>Cantidad solicitada</th>
-                                                                <th class='text-center'>Cantidad ofrecida</th>
-                                                                <th class='text-center'>Precio por Unidad</th>
-                                                                <th class='text-right'>Subtotal</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody id='products'>
-                                                            <?php for ($i=0; $i < $data->row()->num_products ; $i++): 
-                                                                if ($data->row()->products != "" || $data->row()->products != null) {
-                                                                    $pro = json_decode($data->row()->products,true);
-                                                                } else {
-                                                                    $pro = array();
-                                                                }
-                                                            ?>
-                                                            <tr>
-                                                                <td>
-                                                                    <span class="switch switch-outline switch-icon switch-success">
-                                                                        <label>
-                                                                            <input type="checkbox" id="available-<?php echo $i;?>" name="available[]" value="1" onchange="disponible('<?php echo $i;?>')" checked><span></span>
-                                                                        </label>
-                                                                    </span>
-                                                                </td>
-                                                                <td><?php echo $this->db->get_where('products', array('products_id'=>$pro[$i]['product']))->row()->name ;?>
-                                                                    <input type="hidden" name="name[]"
-                                                                        value='<?php echo $pro[$i]['product'];?>'>
-                                                                </td>
-                                                                <td class='text-center'>
-                                                                    <?php echo $pro[$i]['amount'];?>
-                                                                    <input type="hidden" name="amount_request[]" id="amount_request-<?php echo $i;?>"
-                                                                        value='<?php echo $pro[$i]['amount'];?>'>
-                                                                </td>
-                                                                <td><input type="number" class="form-control" step="any" style='max-width: fit-content;'
-                                                                        name='amount_give[]'
-                                                                        id='amount-<?php echo $i;?>'
-                                                                        onblur="sum(<?php echo $i;?>)"
-                                                                        value="<?php echo $pro[$i]['amount'];?>"
-                                                                        min='0'>
-                                                                </td>
-                                                                <td><input type="number" class="form-control" step="any" style='max-width: fit-content;'
-                                                                        name='price_buy[]' step="0.01"
-                                                                        id='price_buy-<?php echo $i;?>'
-                                                                        onblur="sum('<?php echo $i ;?>')"
-                                                                        value="<?php echo $pro[$i]['price_buy'];?>"
-                                                                        min='0.01'>
-                                                                </td>
-                                                                <td class='text-right'><span class="text-success"
-                                                                        id='sub-<?php echo $i;?>'><b><?php echo $moneda;?>0.00</b></span>
-                                                                    <input type="hidden" class='total' name="sub[]"
-                                                                        id='subt-<?php echo $i;?>'>
-                                                                </td>
-                                                            </tr>
-                                                            <?php endfor;?>
-                                                        </tbody>
-                                                    </table>
+                                    <div class="col-lg-4">
+                                        <div class="card" id="preview-providers">
+                                            <div class="card-header border-0 pt-5">
+                                                <h3 class="card-title font-weight-bolder">Previsualización subórdenes</h3>
+                                            </div>
+                                            <div class="card-body pt-2">
+                                                <p class="text-muted">Totales agrupados por proveedor.</p>
+                                                <div id="preview-body">
+                                                    <div class="text-muted">Sin asignaciones aún</div>
                                                 </div>
                                                 <hr>
+                                                <div class="d-flex justify-content-between">
+                                                    <b>Total general</b>
+                                                    <b id="preview-total"><?php echo $moneda;?>0.00</b>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                            </form>
+                            <?php elseif (!$is_admin): ?>
+                            <div class="alert alert-warning">Debes iniciar sesión como administrador/encargado de compras para asignar proveedores y generar subórdenes.</div>
+                            <?php else: ?>
+                            <div class="alert alert-secondary">Esta compra ya está completada.</div>
+                            <?php endif; ?>
+
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -195,106 +212,114 @@
         </div>
     </div>
     <?php include 'notifications.php';?>
-    <div id="kt_scrolltop" class="scrolltop">
-        <span class="svg-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px"
-                height="24px" viewBox="0 0 24 24" version="1.1">
-                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                    <polygon points="0 0 24 0 24 24 0 24" />
-                    <rect fill="#000000" opacity="0.3" x="11" y="10" width="2" height="10" rx="1" />
-                    <path
-                        d="M6.70710678,12.7071068 C6.31658249,13.0976311 5.68341751,13.0976311 5.29289322,12.7071068 C4.90236893,12.3165825 4.90236893,11.6834175 5.29289322,11.2928932 L11.2928932,5.29289322 C11.6714722,4.91431428 12.2810586,4.90106866 12.6757246,5.26284586 L18.6757246,10.7628459 C19.0828436,11.1360383 19.1103465,11.7686056 18.7371541,12.1757246 C18.3639617,12.5828436 17.7313944,12.6103465 17.3242754,12.2371541 L12.0300757,7.38413782 L6.70710678,12.7071068 Z"
-                        fill="#000000" fill-rule="nonzero" />
-                </g>
-            </svg>
-        </span>
-    </div>
     <?php include 'scripts.php';?>
 
-    <script type="text/javascript">
-    var moneda = '<?php echo $moneda; ?>';
+<script type="text/javascript">
+var moneda = '<?php echo $moneda; ?>';
+var providerOptionsHtml = <?php echo json_encode('<option value="">Seleccionar</option>'.$provider_options); ?>;
 
-    $(document).ready(function() {
-        <?php for ($i=0; $i < $data->row()->num_products; $i++):?>
-        sum(<?php echo $i;?>);
-        <?php endfor;?>
-    })
+function addAlloc(productIndex) {
+    var $block = $('.product-block[data-product-index="'+productIndex+'"]');
+    var productId = $block.data('product-id');
+    var html = '<tr class="alloc-row">' +
+        '<td><input type="hidden" name="product[]" value="'+productId+'">' +
+        '<select class="form-control form-control-sm provider-select" name="provider[]" required>'+providerOptionsHtml+'</select></td>' +
+        '<td><input type="number" step="any" min="0.01" class="form-control form-control-sm amount-input" name="amount[]" value="0" required oninput="recalcProduct('+productIndex+')"></td>' +
+        '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm price-input" name="price_buy[]" value="0" required oninput="recalcProduct('+productIndex+')"></td>' +
+        '<td><span class="sub-label">'+moneda+'0.00</span><input type="hidden" class="sub-input" name="sub[]" value="0"></td>' +
+        '<td><button type="button" class="btn btn-sm btn-light-danger" onclick="removeAlloc(this, '+productIndex+')">x</button></td>' +
+        '</tr>';
+    $('#alloc-body-'+productIndex).append(html);
+    recalcProduct(productIndex);
+}
 
-    function sum(i) {
+function removeAlloc(btn, productIndex) {
+    var $body = $('#alloc-body-'+productIndex);
+    if ($body.find('.alloc-row').length <= 1) {
+        alert('Debe quedar al menos una asignación por producto.');
+        return;
+    }
+    $(btn).closest('tr').remove();
+    recalcProduct(productIndex);
+}
 
-        let cantidad = $('#amount-' + i).val();
-        let precio = $('#price_buy-' + i).val();
-        if (precio == "" || precio == NaN) {
-            precio = 0;
-        }
-        let total = parseInt(cantidad) * parseFloat(precio);
-        var total_format = custom_number_format(total, '2',);
+function recalcProduct(productIndex) {
+    var $block = $('.product-block[data-product-index="'+productIndex+'"]');
+    var req = parseFloat($block.data('req')) || 0;
+    var assigned = 0;
+    $block.find('.alloc-row').each(function() {
+        var qty = parseFloat($(this).find('.amount-input').val()) || 0;
+        var price = parseFloat($(this).find('.price-input').val()) || 0;
+        var sub = qty * price;
+        assigned += qty;
+        $(this).find('.sub-label').text(moneda + sub.toFixed(2));
+        $(this).find('.sub-input').val(sub.toFixed(2));
+    });
+    var $lab = $('#assigned-'+productIndex);
+    $lab.text(assigned.toFixed(2));
+    if (Math.abs(assigned - req) < 0.0001) {
+        $lab.removeClass('qty-bad').addClass('qty-ok');
+    } else {
+        $lab.removeClass('qty-ok').addClass('qty-bad');
+    }
+    updatePreview();
+}
 
-        $('#sub-' + i).html(moneda + total_format);
-        $('#subt-' + i).val(total.toFixed(2));
+function updatePreview() {
+    var map = {};
+    var grand = 0;
+    $('.alloc-row').each(function() {
+        var provid = $(this).find('.provider-select').val();
+        var pname = $(this).find('.provider-select option:selected').text();
+        var sub = parseFloat($(this).find('.sub-input').val()) || 0;
+        if (!provid) return;
+        if (!map[provid]) map[provid] = { name: pname, total: 0 };
+        map[provid].total += sub;
+        grand += sub;
+    });
+    var html = '';
+    Object.keys(map).forEach(function(k) {
+        html += '<div class="d-flex justify-content-between mb-2"><span>'+map[k].name+'</span><b>'+moneda+map[k].total.toFixed(2)+'</b></div>';
+    });
+    if (!html) html = '<div class="text-muted">Sin asignaciones aún</div>';
+    $('#preview-body').html(html);
+    $('#preview-total').text(moneda + grand.toFixed(2));
+}
 
-        let suma = 0;
-        $('.total').each(function() {
-            suma += parseFloat($(this).val());
+function validateSplit() {
+    var ok = true;
+    var msg = '';
+    $('.product-block').each(function() {
+        var req = parseFloat($(this).data('req')) || 0;
+        var idx = $(this).data('product-index');
+        var assigned = 0;
+        $(this).find('.amount-input').each(function() {
+            assigned += parseFloat($(this).val()) || 0;
         });
-        var suma_format = custom_number_format(suma, '2',);
-        $('#total').html(moneda + suma_format);
-        $('#ttl').val(suma.toFixed(2));
-        var count_elements = $('.total').length;
-        if (count_elements === 0)
-            $('#confirm').attr("disabled", true);
-
-    }
-
-    function disponible(i) {
-        if ($('#available-'+i).prop('checked')) {
-            let amount = $('#amount_request-'+i).val();
-            $('#price_buy-' + i).removeAttr('readonly');
-            $('#amount-' + i).removeAttr('readonly');
-            $('#amount-' + i).val(amount);
-            $('#available-'+i).val(1);
+        if (Math.abs(assigned - req) > 0.0001) {
+            ok = false;
+            msg = 'Hay productos cuya cantidad asignada no coincide con la solicitada.';
         }
-        else {
-            $('#amount-' + i).val(0);
-            $('#amount-' + i).attr('readonly', 'true');
-            $('#price_buy-' + i).attr('readonly', 'true');
-            $('#price_buy-' + i).val('');
-            $('#available-'+i).val(0);
-        }
-        sum(i);
-    }
-
-    function custom_number_format( number_input, decimals, dec_point, thousands_sep ) {
-        var number       = ( number_input + '' ).replace( /[^0-9+\-Ee.]/g, '' );
-        var finite_number   = !isFinite( +number ) ? 0 : +number;
-        var finite_decimals = !isFinite( +decimals ) ? 0 : Math.abs( decimals );
-        var seperater     = ( typeof thousands_sep === 'undefined' ) ? ',' : thousands_sep;
-        var decimal_pont   = ( typeof dec_point === 'undefined' ) ? '.' : dec_point;
-        var number_output   = '';
-        var toFixedFix = function ( n, prec ) {
-            if( ( '' + n ).indexOf( 'e' ) === -1 ) {
-                return +( Math.round( n + 'e+' + prec ) + 'e-' + prec );
-            } else {
-                var arr = ( '' + n ).split( 'e' );
-                let sig = '';
-                if ( +arr[1] + prec > 0 ) {
-                    sig = '+';
-                }
-                return ( +(Math.round( +arr[0] + 'e' + sig + ( +arr[1] + prec ) ) + 'e-' + prec ) ).toFixed( prec );
+        $(this).find('.provider-select').each(function() {
+            if (!$(this).val()) {
+                ok = false;
+                msg = 'Selecciona proveedor en todas las asignaciones.';
             }
-        }
-        number_output = ( finite_decimals ? toFixedFix( finite_number, finite_decimals ).toString() : '' + Math.round( finite_number ) ).split( '.' );
-        if( number_output[0].length > 3 ) {
-            number_output[0] = number_output[0].replace( /\B(?=(?:\d{3})+(?!\d))/g, seperater );
-        }
-        if( ( number_output[1] || '' ).length < finite_decimals ) {
-            number_output[1] = number_output[1] || '';
-            number_output[1] += new Array( finite_decimals - number_output[1].length + 1 ).join( '0' );
-        }
-        return number_output.join(decimal_pont );
+        });
+    });
+    if (!ok) {
+        alert(msg);
+        return false;
     }
-    </script>
+    return confirm('¿Generar las subórdenes por proveedor?');
+}
 
+$(document).ready(function() {
+    $('.product-block').each(function() {
+        recalcProduct($(this).data('product-index'));
+    });
+    $(document).on('change', '.provider-select', updatePreview);
+});
+</script>
 </body>
-
 </html>

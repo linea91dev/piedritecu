@@ -8,6 +8,7 @@ class Provider extends CI_Controller
 		$this->load->library('user_agent');
 		$this->load->database();
         $this->load->library('session');
+        $this->load->model('crud_model');
 		$this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
 		$this->output->set_header('Pragma: no-cache');
     }
@@ -20,7 +21,6 @@ class Provider extends CI_Controller
                 redirect(base_url() . 'login', 'refresh');
                 return;
             }
-            $this->load->model('crud_model');
             $code = $this->input->post('code');
             $ok = $this->crud_model->change_shopping_provider($code);
             if ($ok) {
@@ -32,6 +32,27 @@ class Provider extends CI_Controller
             return;
         }
 
+        if ($param1 == 'split_confirm') {
+            if ($this->session->userdata('admin_login') != 1) {
+                redirect(base_url() . 'login', 'refresh');
+                return;
+            }
+            $code = $this->input->post('code');
+            $result = $this->crud_model->split_shopping_by_providers($code);
+            if ($result === false || (is_array($result) && !empty($result['error']))) {
+                $msg = is_array($result) && !empty($result['error'])
+                    ? $result['error']
+                    : 'No se pudo generar las subórdenes.';
+                $this->session->set_flashdata('error_message', $msg);
+                redirect(base_url() . 'provider/detalles_compra/'.$code, 'refresh');
+                return;
+            }
+            $this->session->set_flashdata('flash_message', $result['message']);
+            redirect(base_url() . 'admin/detalles_compra/'.$code, 'refresh');
+            return;
+        }
+
+        $this->crud_model->ensure_shopping_parent_code();
         $page_data['code'] = $param1;
         $this->load->view('provider/details', $page_data);
     }  

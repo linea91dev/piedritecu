@@ -1,7 +1,10 @@
 <?php  
+	$this->crud_model->ensure_shopping_parent_code();
 	$shopping = $this->db->get_where('shopping',array('code'=>$code))->row();
 	$shopping_id = $shopping->shopping_id;
     $moneda = $this->crud_model->get_info("moneda");
+    $parent_code = isset($shopping->parent_code) ? $shopping->parent_code : null;
+    $children = $this->crud_model->get_shopping_children($code);
 ?>
 <div class="container-fluid">
     <div class="row">
@@ -190,7 +193,7 @@
                         <div class="col-sm-12">
                             <div class="form-group">
                                 <label><b>Proveedor:</b></label>
-                                <?php if((int)$shopping->type !== 1 && ($user_type == 1 || $permisos['editar_compras'] == 1)):?>
+                                <?php if((int)$shopping->type !== 1 && empty($parent_code) && ($user_type == 1 || $permisos['editar_compras'] == 1)):?>
                                 <form method="POST" action="<?php echo base_url();?>admin/detalles_compra/change_provider" class="mt-2">
                                     <input type="hidden" name="code" value="<?php echo $shopping->code;?>">
                                     <div class="row">
@@ -218,15 +221,71 @@
                                 </form>
                                 <div class="mt-3">
                                     <a href="<?php echo base_url().'provider/detalles_compra/'.$shopping->code;?>" target="_blank" class="btn btn-light-info font-weight-bolder btn-sm">
-                                        Abrir enlace para el proveedor
+                                        Cotizar / asignar por proveedor
                                     </a>
                                 </div>
                                 <?php else:
                                     $prov_row = $this->db->get_where('provider',array('provider_id'=>$shopping->provider))->row();
                                     echo $prov_row ? $prov_row->name : 'Sin proveedor';
+                                    if (empty($parent_code) && (int)$shopping->type === 3): ?>
+                                    <div class="mt-3">
+                                        <a href="<?php echo base_url().'provider/detalles_compra/'.$shopping->code;?>" target="_blank" class="btn btn-light-info font-weight-bolder btn-sm">
+                                            Cotizar / asignar por proveedor
+                                        </a>
+                                    </div>
+                                    <?php endif;
                                 endif;?>
                             </div>
                         </div>
+
+                        <?php if (!empty($parent_code)): ?>
+                        <div class="col-sm-12">
+                            <div class="alert alert-light-info mb-0">
+                                <b>Suborden</b> de la solicitud madre
+                                <a href="<?php echo base_url().'admin/detalles_compra/'.$parent_code;?>" class="font-weight-bold">
+                                    <?php echo $parent_code;?>
+                                </a>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($children)): ?>
+                        <div class="col-sm-12 mt-3">
+                            <label><b>Subórdenes generadas:</b></label>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Código</th>
+                                            <th>Proveedor</th>
+                                            <th>Total</th>
+                                            <th>Estado</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($children as $ch):
+                                            $ch_prov = $this->db->get_where('provider', array('provider_id' => $ch['provider']))->row();
+                                            $estado = ((int)$ch['type']===3)?'Solicitud':(((int)$ch['type']===2)?'Orden':'Completado');
+                                        ?>
+                                        <tr>
+                                            <td><?php echo $ch['code'];?></td>
+                                            <td><?php echo $ch_prov ? $ch_prov->name : '-';?></td>
+                                            <td><?php echo $moneda.number_format($ch['total'],2,'.',',');?></td>
+                                            <td><?php echo $estado;?></td>
+                                            <td>
+                                                <a href="<?php echo base_url().'admin/detalles_compra/'.$ch['code'];?>" class="btn btn-sm btn-light-primary">Ver</a>
+                                                <?php if ((int)$ch['type'] === 2): ?>
+                                                <a href="<?php echo base_url().'admin/nueva_compra_s/'.$ch['code'];?>" class="btn btn-sm btn-light-success">Registrar</a>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <?php endif; ?>
 
                     </div>
                 </div>

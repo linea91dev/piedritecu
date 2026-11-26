@@ -145,7 +145,20 @@
                                 <?php $n=1 ;foreach ($data->result_array() as $row) :?>
                                 <tr>
                                     <td><?php echo $n++;?></td>
-                                    <td><?php echo $row['code'];?></td>
+                                    <td>
+                                        <?php echo $row['code'];?>
+                                        <?php
+                                        $row_parent = isset($row['parent_code']) ? $row['parent_code'] : '';
+                                        if ($row_parent): ?>
+                                        <br><span class="badge badge-secondary">Suborden de <?php echo $row_parent;?></span>
+                                        <?php else:
+                                            // Madre si tiene hijas
+                                            if ($this->db->field_exists('parent_code', 'shopping')) {
+                                                $has_children = $this->db->get_where('shopping', array('parent_code' => $row['code'], 'status' => 1))->num_rows();
+                                                if ($has_children > 0): ?>
+                                        <br><span class="badge badge-dark">Madre (<?php echo $has_children;?> subórdenes)</span>
+                                        <?php endif; } endif; ?>
+                                    </td>
                                     <td><span class="text-info"><b><?php setlocale(LC_TIME, "spanish");
                                         $Nueva_Fecha = date("d/m/Y", strtotime( $row['date'] ));				
                                         $Mes_Anyo = strftime("%m/%d/%Y", strtotime($Nueva_Fecha)); 
@@ -186,7 +199,7 @@
                                             <?php if($row['type']==3 && ($user_type == 1 || $permisos['ver_solicitud'] == 1)):?>
                                             &nbsp;
                                             <a href="<?php echo base_url().'provider/detalles_compra/'.$row['code'];?>" target=”_blank”
-                                                data-toggle="tooltip" data-original-title="Compartir con proveedor"
+                                                data-toggle="tooltip" data-original-title="Cotizar / asignar por proveedor"
                                                 class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1">
                                                 <span class="svg-icon svg-icon-primary svg-icon-2x">
                                                     <svg xmlns="http://www.w3.org/2000/svg"

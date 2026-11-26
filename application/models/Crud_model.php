@@ -8696,6 +8696,28 @@ function new_change()
         $this->insert_notification($message, base64_encode('admin/compras/'), 'ver_compras', 'Compra_eliminada');
     }
 
+    function ensure_shopping_parent_code()
+    {
+        if (!$this->db->field_exists('parent_code', 'shopping')) {
+            $this->db->query("ALTER TABLE `shopping` ADD COLUMN `parent_code` VARCHAR(40) NULL DEFAULT NULL AFTER `code`");
+            $idx = $this->db->query("SHOW INDEX FROM `shopping` WHERE Key_name = 'idx_shopping_parent_code'");
+            if ($idx->num_rows() == 0) {
+                $this->db->query("ALTER TABLE `shopping` ADD INDEX `idx_shopping_parent_code` (`parent_code`)");
+            }
+        }
+        if (!$this->db->field_exists('allocations_json', 'shopping')) {
+            $this->db->query("ALTER TABLE `shopping` ADD COLUMN `allocations_json` TEXT NULL AFTER `products`");
+        }
+    }
+
+    function get_shopping_children($parent_code)
+    {
+        $this->ensure_shopping_parent_code();
+        return $this->db->order_by('shopping_id', 'ASC')
+            ->get_where('shopping', array('parent_code' => $parent_code, 'status' => 1))
+            ->result_array();
+    }
+
     function change_shopping_provider($code)
     {
         $code = trim((string) $code);
@@ -8739,6 +8761,182 @@ function new_change()
         $this->insert_notification($message, base64_encode('admin/detalles_compra/'.$code), 'ver_compras', 'Compra_update');
 
         return true;
+    }
+
+    /**
+     * Divide una solicitud madre en subórdenes (type=2) por proveedor.
+     * Permite partir cantidades del mismo producto entre varios proveedores.
+     * @return array|false { children: [codes...], message }
+     */
+    function split_shopping_by_providers($code)
+    {
+        $this->ensure_shopping_parent_code();
+        $code = trim((string) $code);
+        $madre = $this->db->get_where('shopping', array('code' => $code))->row();
+        if (!$madre || (int)$madre->type === 1) {
+            return false;
+        }
+
+        // No re-dividir si ya hay hijas completadas
+        $hijas = $this->get_shopping_children($code);
+        if (!empty($hijas)) {
+            foreach ($hijas as $h) {
+                if ((int)$h['type'] === 1) {
+                    return array('error' => 'Ya existen subórdenes completadas; no se puede volver a dividir.');
+                }
+            }
+            // Eliminar lógicamente hijas no completadas para regenerar
+            foreach ($hijas as $h) {
+                $this->db->where('code', $h['code']);
+                $this->db->update('shopping', array('status' => 0));
+            }
+        }
+
+        $products_post = $this->input->post('product');
+        $providers_post = $this->input->post('provider');
+        $amounts_post = $this->input->post('amount');
+        $prices_post = $this->input->post('price_buy');
+        $subs_post = $this->input->post('sub');
+
+        if (!is_array($products_post) || empty($products_post)) {
+            return array('error' => 'No hay asignaciones para procesar.');
+        }
+
+        $original = json_decode($madre->products, true);
+        if (!is_array($original)) {
+            $original = array();
+        }
+        $requested = array();
+        foreach ($original as $op) {
+            $pid = (int)$op['product'];
+            if (!isset($requested[$pid])) $requested[$pid] = 0;
+            $requested[$pid] += floatval(isset($op['amount']) ? $op['amount'] : 0);
+        }
+
+        $allocated = array();
+        $rows = array();
+        $n = count($products_post);
+        for ($i = 0; $i < $n; $i++) {
+            $pid = (int)$products_post[$i];
+            $provid = (int)(isset($providers_post[$i]) ? $providers_post[$i] : 0);
+            $qty = floatval(isset($amounts_post[$i]) ? $amounts_post[$i] : 0);
+            $price = floatval(isset($prices_post[$i]) ? $prices_post[$i] : 0);
+            $sub = isset($subs_post[$i]) && $subs_post[$i] !== ''
+                ? floatval($subs_post[$i])
+                : round($qty * $price, 2);
+
+            if ($pid <= 0 || $provid <= 0 || $qty <= 0) {
+                continue;
+            }
+            $prov = $this->db->get_where('provider', array('provider_id' => $provid, 'status' => 1))->row();
+            if (!$prov) {
+                return array('error' => 'Proveedor inválido en una asignación.');
+            }
+
+            if (!isset($allocated[$pid])) $allocated[$pid] = 0;
+            $allocated[$pid] += $qty;
+
+            $rows[] = array(
+                'product' => $pid,
+                'provider' => $provid,
+                'amount' => $qty,
+                'price_buy' => $price,
+                'sub' => $sub,
+                'expiration' => ''
+            );
+        }
+
+        if (empty($rows)) {
+            return array('error' => 'No hay asignaciones válidas.');
+        }
+
+        // Validar que las cantidades cuadren al 100%
+        foreach ($requested as $pid => $req_qty) {
+            $got = isset($allocated[$pid]) ? $allocated[$pid] : 0;
+            if (abs($got - $req_qty) > 0.0001) {
+                $pname = $this->db->get_where('products', array('products_id' => $pid))->row();
+                $name = $pname ? $pname->name : ('ID '.$pid);
+                return array('error' => 'La cantidad asignada de "'.$name.'" ('.$got.') no coincide con la solicitada ('.$req_qty.').');
+            }
+        }
+        foreach ($allocated as $pid => $got) {
+            if (!isset($requested[$pid])) {
+                return array('error' => 'Hay un producto asignado que no pertenece a la solicitud.');
+            }
+        }
+
+        // Agrupar por proveedor
+        $groups = array();
+        foreach ($rows as $r) {
+            $provid = $r['provider'];
+            if (!isset($groups[$provid])) {
+                $groups[$provid] = array('products' => array(), 'total' => 0);
+            }
+            $groups[$provid]['products'][] = array(
+                'product' => $r['product'],
+                'amount' => $r['amount'],
+                'price_buy' => $r['price_buy'],
+                'discount' => 0,
+                'sub' => $r['sub'],
+                'expiration' => $r['expiration']
+            );
+            $groups[$provid]['total'] += floatval($r['sub']);
+        }
+
+        $child_codes = array();
+        $datetime = date('Y-m-d H:i:s');
+        foreach ($groups as $provid => $group) {
+            $child_code = $this->getCodeCompra();
+            // Evitar colisión improbable
+            while ($this->db->get_where('shopping', array('code' => $child_code))->num_rows() > 0) {
+                $child_code = $this->getCodeCompra();
+            }
+
+            $child = array(
+                'code' => $child_code,
+                'parent_code' => $code,
+                'type' => 2,
+                'provider' => $provid,
+                'responsable' => $madre->responsable,
+                'date' => date('Y-m-d'),
+                'date_request' => isset($madre->date_request) ? $madre->date_request : date('Y-m-d'),
+                'location' => $madre->location,
+                'destiny' => $madre->destiny,
+                'details' => trim(($madre->details ? $madre->details.' ' : '').'Suborden de '.$code),
+                'total' => round($group['total'], 2),
+                'products' => json_encode($group['products']),
+                'num_products' => count($group['products']),
+                'branch_id' => $madre->branch_id,
+                'datetime' => $datetime,
+                'status' => 1,
+                'credito' => isset($madre->credito) ? $madre->credito : 0,
+                'dias_credito' => isset($madre->dias_credito) ? $madre->dias_credito : 0,
+                'promocion' => isset($madre->promocion) ? $madre->promocion : 0,
+                'chk_factura' => isset($madre->chk_factura) ? $madre->chk_factura : 0,
+                'factura' => isset($madre->factura) ? $madre->factura : ''
+            );
+            $this->db->insert('shopping', $child);
+            $child_codes[] = $child_code;
+        }
+
+        // Snapshot de asignaciones en la madre (historial) sin borrar productos originales
+        $upd = array(
+            'type' => 3,
+            'allocations_json' => json_encode(array(
+                'allocations' => $rows,
+                'children' => $child_codes,
+                'split_at' => $datetime
+            )),
+            'details' => trim(($madre->details ? $madre->details."\n" : '').'Dividida en subórdenes: '.implode(', ', $child_codes)),
+        );
+        $this->db->where('code', $code);
+        $this->db->update('shopping', $upd);
+
+        $message = 'Dividió la solicitud '.$code.' en '.count($child_codes).' subórdenes: '.implode(', ', $child_codes);
+        $this->insert_binnacle($message);
+        $this->insert_notification($message, base64_encode('admin/detalles_compra/'.$code), 'ver_compras', 'Compra_update');
+
+        return array('children' => $child_codes, 'message' => $message);
     }
 
     function complete_shopping($code)
