@@ -33,7 +33,12 @@ if ($shopping_row && ($shopping_row->products != "" && $shopping_row->products !
     if (!is_array($pro)) $pro = array();
 }
 $children = $shopping_row ? $this->crud_model->get_shopping_children($code) : array();
-$already_split = !empty($children);
+$alloc_snap = array();
+if ($shopping_row && !empty($shopping_row->allocations_json)) {
+    $decoded_alloc = json_decode($shopping_row->allocations_json, true);
+    if (is_array($decoded_alloc)) $alloc_snap = $decoded_alloc;
+}
+$already_split = !empty($children) || !empty($alloc_snap['children']);
 ?>
 <body id="kt_body" class="header-fixed header-mobile-fixed sidebar-enabled page-loading">
     <?php include 'mobile.php';?>
@@ -79,20 +84,58 @@ $already_split = !empty($children);
                             </div>
 
                             <?php if ($already_split): ?>
-                            <div class="alert alert-warning">
-                                Esta solicitud ya fue dividida. Subórdenes:
-                                <?php foreach ($children as $ch): ?>
-                                <a href="<?php echo base_url().'admin/detalles_compra/'.$ch['code'];?>" class="font-weight-bold mr-2">
-                                    <?php echo $ch['code'];?>
-                                </a>
-                                <?php endforeach; ?>
-                                <div class="mt-2">
-                                    <a href="<?php echo base_url().'admin/detalles_compra/'.$code;?>" class="btn btn-sm btn-light-primary">Ver solicitud madre</a>
+                            <div class="alert alert-success">
+                                <b>Esta solicitud ya fue asignada.</b>
+                                No se puede volver a dividir desde aquí.
+                                <?php if (!empty($alloc_snap['split_at'])): ?>
+                                <div class="text-muted mt-1">Asignada el <?php echo $alloc_snap['split_at'];?></div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <h4 class="mb-3">Subórdenes generadas</h4>
+                                    <?php if (!empty($children)): ?>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Código</th>
+                                                    <th>Proveedor</th>
+                                                    <th>Total</th>
+                                                    <th>Estado</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($children as $ch):
+                                                    $ch_prov = $this->db->get_where('provider', array('provider_id' => $ch['provider']))->row();
+                                                    $estado = ((int)$ch['type']===3)?'Solicitud':(((int)$ch['type']===2)?'Orden':'Completado');
+                                                ?>
+                                                <tr>
+                                                    <td><?php echo $ch['code'];?></td>
+                                                    <td><?php echo $ch_prov ? $ch_prov->name : '-';?></td>
+                                                    <td><?php echo $moneda.number_format($ch['total'],2,'.',',');?></td>
+                                                    <td><?php echo $estado;?></td>
+                                                    <td>
+                                                        <a href="<?php echo base_url().'admin/detalles_compra/'.$ch['code'];?>" class="btn btn-sm btn-light-primary">Ver</a>
+                                                    </td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <?php else:
+                                        $codes_fallback = !empty($alloc_snap['children']) ? $alloc_snap['children'] : array();
+                                        foreach ($codes_fallback as $cc): ?>
+                                    <a href="<?php echo base_url().'admin/detalles_compra/'.$cc;?>" class="font-weight-bold mr-2"><?php echo $cc;?></a>
+                                    <?php endforeach; endif; ?>
+                                    <div class="mt-3">
+                                        <a href="<?php echo base_url().'admin/detalles_compra/'.$code;?>" class="btn btn-sm btn-light-primary">Ver solicitud madre</a>
+                                        <a href="<?php echo base_url().'admin/compras/';?>" class="btn btn-sm btn-light">Ir a compras</a>
+                                    </div>
                                 </div>
                             </div>
-                            <?php endif; ?>
-
-                            <?php if ($is_admin && (int)$shopping_row->type !== 1): ?>
+                            <?php elseif ($is_admin && (int)$shopping_row->type !== 1): ?>
                             <form method="POST" action="<?php echo base_url();?>provider/detalles_compra/split_confirm" id="splitForm" onsubmit="return validateSplit();">
                                 <input type="hidden" name="code" value="<?php echo $code;?>">
                                 <div class="row">
@@ -168,7 +211,7 @@ $already_split = !empty($children);
                                                 <?php endif; ?>
 
                                                 <div class="text-right mt-4">
-                                                    <button type="submit" class="btn btn-warning font-weight-bolder" <?php if($already_split) echo 'onclick="return confirm(\'Ya existen subórdenes. Se regenerarán las no completadas. ¿Continuar?\');"';?>>
+                                                    <button type="submit" class="btn btn-warning font-weight-bolder">
                                                         Confirmar y generar subórdenes
                                                     </button>
                                                     <a href="<?php echo base_url().'admin/detalles_compra/'.$code;?>" class="btn btn-light font-weight-bolder">Cancelar</a>

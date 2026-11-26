@@ -8777,18 +8777,15 @@ function new_change()
             return false;
         }
 
-        // No re-dividir si ya hay hijas completadas
+        // No permitir reasignar si ya hay subórdenes o snapshot de asignación
         $hijas = $this->get_shopping_children($code);
         if (!empty($hijas)) {
-            foreach ($hijas as $h) {
-                if ((int)$h['type'] === 1) {
-                    return array('error' => 'Ya existen subórdenes completadas; no se puede volver a dividir.');
-                }
-            }
-            // Eliminar lógicamente hijas no completadas para regenerar
-            foreach ($hijas as $h) {
-                $this->db->where('code', $h['code']);
-                $this->db->update('shopping', array('status' => 0));
+            return array('error' => 'Esta solicitud ya fue asignada y tiene subórdenes. No se puede volver a dividir.');
+        }
+        if (!empty($madre->allocations_json)) {
+            $prev = json_decode($madre->allocations_json, true);
+            if (is_array($prev) && !empty($prev['children'])) {
+                return array('error' => 'Esta solicitud ya fue asignada. No se puede volver a dividir.');
             }
         }
 
