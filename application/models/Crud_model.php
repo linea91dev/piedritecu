@@ -8708,6 +8708,9 @@ function new_change()
         if (!$this->db->field_exists('allocations_json', 'shopping')) {
             $this->db->query("ALTER TABLE `shopping` ADD COLUMN `allocations_json` TEXT NULL AFTER `products`");
         }
+        if (!$this->db->field_exists('descuento', 'shopping')) {
+            $this->db->query("ALTER TABLE `shopping` ADD COLUMN `descuento` DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER `total`");
+        }
     }
 
     function get_shopping_children($parent_code)
@@ -9047,7 +9050,19 @@ function new_change()
         $data['location']    = $destino;
         $data['destiny']     = $destino;
         $data['details']     = $this->input->post('details');
-        $data['total']       = $this->input->post('ttl');
+        $this->ensure_shopping_parent_code();
+        $descuento = max(0, floatval($this->input->post('descuento')));
+        $subtotal_post = floatval($this->input->post('subtotal'));
+        $ttl_post = floatval($this->input->post('ttl'));
+        if ($subtotal_post > 0 && $descuento > $subtotal_post) {
+            $descuento = $subtotal_post;
+        }
+        // Preferir total neto calculado: subtotal - descuento
+        if ($subtotal_post > 0) {
+            $ttl_post = round($subtotal_post - $descuento, 2);
+        }
+        $data['descuento']   = round($descuento, 2);
+        $data['total']       = round($ttl_post, 2);
         $data['promocion']   = $this->input->post('promocion') ? 1 : 0;
         $provider_id = $this->input->post('provider');
         if ($provider_id == "" || $provider_id == null) $provider_id = 0;

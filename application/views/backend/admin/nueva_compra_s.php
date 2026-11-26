@@ -121,23 +121,45 @@ function sum(i) {
 
     let cantidad = $('#amount-' + i).val();
     let precio = $('#price_buy-' + i).val();
-    if (precio == "" || precio == NaN) {
+    if (precio == "" || isNaN(precio)) {
         precio = 0;
     }
-    let total = parseInt(cantidad) * parseFloat(precio);
+    if (cantidad == "" || isNaN(cantidad)) {
+        cantidad = 0;
+    }
+    let total = parseFloat(cantidad) * parseFloat(precio);
     var total_format = custom_number_format(total, '2',);
     $('#sub-' + i).html(moneda + total_format);
     $('#subt-' + i).val(total.toFixed(2));
 
+    recalcDescuento();
+}
+
+function recalcDescuento() {
     let suma = 0;
     $('.total').each(function() {
-        suma += parseFloat($(this).val());
+        var v = parseFloat($(this).val());
+        if (!isNaN(v)) suma += v;
     });
+    let descuento = parseFloat($('#descuento_general').val());
+    if (isNaN(descuento) || descuento < 0) descuento = 0;
+    if (descuento > suma) {
+        descuento = suma;
+        $('#descuento_general').val(descuento.toFixed(2));
+    }
+    let neto = Math.max(0, suma - descuento);
     var suma_format = custom_number_format(suma, '2',);
-    $('#total').html(moneda + suma_format);
-    $('#ttl').val(suma.toFixed(2));
-    if (suma == 0) {
+    var desc_format = custom_number_format(descuento, '2',);
+    var neto_format = custom_number_format(neto, '2',);
+    $('#subtotal_label').html(moneda + suma_format);
+    $('#descuento_label').html(moneda + desc_format);
+    $('#subtotal').val(suma.toFixed(2));
+    $('#total').html(moneda + neto_format);
+    $('#ttl').val(neto.toFixed(2));
+    if (neto == 0 && suma == 0) {
         $('#confirmar_solicitud').hide();
+    } else {
+        $('#confirmar_solicitud').show();
     }
 }
 

@@ -5,6 +5,17 @@
     $moneda = $this->crud_model->get_info("moneda");
     $parent_code = isset($shopping->parent_code) ? $shopping->parent_code : null;
     $children = $this->crud_model->get_shopping_children($code);
+    $det_descuento = isset($shopping->descuento) ? floatval($shopping->descuento) : 0;
+    $det_prods = json_decode($shopping->products, true);
+    $det_subtotal = 0;
+    if (is_array($det_prods)) {
+        foreach ($det_prods as $dp) {
+            $det_subtotal += isset($dp['sub']) ? floatval($dp['sub']) : 0;
+        }
+    }
+    if ($det_subtotal <= 0) {
+        $det_subtotal = floatval($shopping->total) + $det_descuento;
+    }
 ?>
 <div class="container-fluid">
     <div class="row">
@@ -105,10 +116,26 @@
                                     </select>
                                 </div>
                             </div>
+                            <?php if ($det_descuento > 0): ?>
+                            <div class="col-lg-12 col-xxl-12">
+                                <div class="form-group">
+                                    <label>Subtotal:</label>
+                                    <input type="text" value="<?php echo $moneda.number_format($det_subtotal,2,'.',',');?>" disabled
+                                        class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-lg-12 col-xxl-12">
+                                <div class="form-group">
+                                    <label>Descuento factura:</label>
+                                    <input type="text" value="-<?php echo $moneda.number_format($det_descuento,2,'.',',');?>" disabled
+                                        class="form-control" />
+                                </div>
+                            </div>
+                            <?php endif; ?>
                             <div class="col-lg-12 col-xxl-12">
                                 <div class="form-group">
                                     <label>Total:</label>
-                                    <input type="text" value="<?php echo $moneda.$shopping->total?>" disabled
+                                    <input type="text" value="<?php echo $moneda.number_format($shopping->total,2,'.',',');?>" disabled
                                         class="form-control" />
                                 </div>
                             </div>
@@ -330,6 +357,9 @@
                             </div>
                             <div class="font-weight-boldest font-size-h5">TOTAL</div>
                             <div class="text-right d-flex flex-column">
+                                <?php if (!empty($det_descuento) && $det_descuento > 0): ?>
+                                <span class="font-size-sm opacity-80">Desc. -<?php echo $moneda.number_format($det_descuento,2,'.',',');?></span>
+                                <?php endif; ?>
                                 <span class="font-weight-boldest font-size-h3 line-height-sm"
                                     id="total"><?php echo $moneda.number_format($shopping->total,2,'.',',');?></span>
                             </div>

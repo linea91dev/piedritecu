@@ -611,6 +611,25 @@
                             <textarea readonly class="form-control" name="note"><?php echo $req->note;?></textarea>
                         </div>
                         <?php endif;?>
+                        <div class="form-group">
+                            <label><b>Descuento general (factura):</b></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><?php echo $moneda;?></span>
+                                </div>
+                                <input type="number" step="0.01" min="0" class="form-control" name="descuento" id="descuento_general" value="0" oninput="recalcDescuento()">
+                            </div>
+                            <small class="text-muted">Se resta del subtotal de productos al confirmar la compra.</small>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Subtotal productos</span>
+                            <b id="subtotal_label"><?php echo $moneda;?>0.00</b>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span class="text-muted">Descuento</span>
+                            <b id="descuento_label"><?php echo $moneda;?>0.00</b>
+                        </div>
+                        <input type="hidden" name="subtotal" id="subtotal" value="0">
                     </div>
                     <div class="col-md-12">
                         <div class="bg-primary rounded d-flex justify-content-between text-white position-relative ml-auto p-7">

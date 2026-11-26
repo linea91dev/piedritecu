@@ -152,6 +152,32 @@
                         </td>
                     </tr>
                     <?php endforeach;?>
+                    <?php
+                        $pdf_descuento = isset($datoss['descuento']) ? floatval($datoss['descuento']) : 0;
+                        $pdf_subtotal = 0;
+                        if (is_array($prods)) {
+                            foreach ($prods as $pp) {
+                                $pdf_subtotal += isset($pp['sub']) ? floatval($pp['sub']) : 0;
+                            }
+                        }
+                        if ($pdf_subtotal <= 0) {
+                            $pdf_subtotal = floatval($datoss['total']) + $pdf_descuento;
+                        }
+                    ?>
+                    <tr>
+                        <td colspan="6"
+                        style="padding:10px;font-size: 14px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;text-align:right">
+                            <b>Subtotal:</b> <?php echo $moneda.number_format($pdf_subtotal,2,'.',',');?>
+                        </td>
+                    </tr>
+                    <?php if ($pdf_descuento > 0): ?>
+                    <tr>
+                        <td colspan="6"
+                        style="padding:10px;font-size: 14px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;text-align:right">
+                            <b>Descuento factura:</b> -<?php echo $moneda.number_format($pdf_descuento,2,'.',',');?>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
                     <tr>
                         <td colspan="6" 
                         style="padding:15px;font-size: 20px;border-left: 1px solid black;border-top: 1px solid black;border-right: 1px solid black;border-bottom: 1px solid black;text-align:right">
