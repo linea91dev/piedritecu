@@ -5795,7 +5795,7 @@ echo $table;
             } else {
                 $this->session->set_flashdata('error_message', "No se pudo cambiar el proveedor.");
             }
-            redirect(base_url() . 'admin/detalles_compra/'.$code, 'refresh');
+            redirect(base_url() . 'admin/compras/', 'refresh');
             return;
         }
 
