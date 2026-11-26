@@ -8166,9 +8166,18 @@ function new_change()
         if ($code != '') $this->db->like('code', $code);
         if ($type != '') $this->db->where('type', $type);
         if ($admin_id != '') $this->db->where('provider', $admin_id);
-        
-        $this->db->where("DATE(date_request) >= DATE('$initial')", NULL, FALSE);
-        $this->db->where("DATE(date_request) <= DATE('$final')", NULL, FALSE);
+
+        // Completadas (type=1): filtrar por date (compra). Solicitud/orden: date_request
+        $this->db->where(
+            "(CASE WHEN type = 1 THEN DATE(`date`) ELSE DATE(`date_request`) END) >= DATE(".$this->db->escape($initial).")",
+            NULL,
+            FALSE
+        );
+        $this->db->where(
+            "(CASE WHEN type = 1 THEN DATE(`date`) ELSE DATE(`date_request`) END) <= DATE(".$this->db->escape($final).")",
+            NULL,
+            FALSE
+        );
         $this->db->where('status', 1);
         $this->db->where('branch_id', $branch_id);
         $this->db->order_by('shopping_id', 'DESC');
@@ -8177,8 +8186,16 @@ function new_change()
     
     function get_shopping_date($initial, $final) {
         $branch_id = $this->session->userdata('branch_id');
-        $this->db->where("DATE(date_request) >= DATE('$initial')", NULL, FALSE);
-        $this->db->where("DATE(date_request) <= DATE('$final')", NULL, FALSE);
+        $this->db->where(
+            "(CASE WHEN type = 1 THEN DATE(`date`) ELSE DATE(`date_request`) END) >= DATE(".$this->db->escape($initial).")",
+            NULL,
+            FALSE
+        );
+        $this->db->where(
+            "(CASE WHEN type = 1 THEN DATE(`date`) ELSE DATE(`date_request`) END) <= DATE(".$this->db->escape($final).")",
+            NULL,
+            FALSE
+        );
         $this->db->where('status', 1);
         $this->db->where('branch_id', $branch_id);
         return $this->db->get('shopping');

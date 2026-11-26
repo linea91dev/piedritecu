@@ -159,10 +159,12 @@
                                         <br><span class="badge badge-dark">Madre (<?php echo $has_children;?> subórdenes)</span>
                                         <?php endif; } endif; ?>
                                     </td>
-                                    <td><span class="text-info"><b><?php setlocale(LC_TIME, "spanish");
-                                        $Nueva_Fecha = date("d/m/Y", strtotime( $row['date'] ));				
-                                        $Mes_Anyo = strftime("%m/%d/%Y", strtotime($Nueva_Fecha)); 
-                                        echo $Nueva_Fecha;?></b></span></td>
+                                    <td><span class="text-info"><b><?php
+                                        $fecha_mostrar = ((int)$row['type'] === 1 && !empty($row['date']))
+                                            ? $row['date']
+                                            : (!empty($row['date_request']) ? $row['date_request'] : $row['date']);
+                                        echo date("d/m/Y", strtotime($fecha_mostrar));
+                                    ?></b></span></td>
                                     <td><span
                                             class="label label-lg font-weight-bolder label-light-info label-inline"><?php echo $moneda.number_format($row['total'],2,'.',',')?></span>
                                     </td>
