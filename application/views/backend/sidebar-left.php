@@ -416,8 +416,9 @@
                         </div>
                         <div class="form-group">
                             <label><b>Fecha de entrega:</b></label>
-                            <input type="date" class="form-control" value='<?php echo date('Y-m-d');?>' name='date'>
-                            <small>Se le indicará al proveedor cuando quieres recibir los productos</small>
+                            <input type="hidden" name="date" value="<?php echo date('Y-m-d');?>">
+                            <input type="date" class="form-control" value="<?php echo date('Y-m-d');?>" disabled>
+                            <small>Fecha fija del día de la solicitud; no se puede modificar.</small>
                         </div>
                     </div>
                     <div class="col-sm-12">
