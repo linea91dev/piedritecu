@@ -3217,30 +3217,88 @@ class Admin extends CI_Controller
             redirect(base_url(), 'refresh');
         }
 
-        if ($param1 == "create") {
-            $this->ver_permisos('crear_ventas');
-            $return = $this->crud_model->create_sale_ajuste($param2, $param3);
-            if ($return === false) {
-                $this->session->set_flashdata('error_message', "No hay diferencias para ajustar.");
+        $this->crud_model->ensure_inventario_conteo_tables();
+
+        if ($param1 == 'create') {
+            $result = $this->crud_model->create_inventario_conteo();
+            if (!empty($result['error'])) {
+                $this->session->set_flashdata('error_message', $result['error']);
                 redirect(base_url() . 'admin/ajuste_inventario/', 'refresh');
                 return;
             }
-            $this->session->set_flashdata('flash_message', "Ajuste de inventario registrado correctamente.");
-            if ($return == 1) {
-                redirect(base_url() . 'admin/creditos/', 'refresh');
-            } else {
-                redirect(base_url() . 'admin/ventas/', 'refresh');
-            }
+            $this->session->set_flashdata('flash_message', 'Conteo '.$result['code'].' creado. Captura el conteo físico.');
+            redirect(base_url() . 'admin/ajuste_inventario/detalle/'.$result['code'], 'refresh');
             return;
         }
 
-        $precio = $this->input->post('precio_t');
-        if ($precio == '') $precio = 1;
+        if ($param1 == 'save' && $param2 != '') {
+            $result = $this->crud_model->save_inventario_conteo($param2);
+            if (!empty($result['error'])) {
+                $this->session->set_flashdata('error_message', $result['error']);
+            } else {
+                $this->session->set_flashdata('flash_message', 'Conteo guardado.');
+            }
+            redirect(base_url() . 'admin/ajuste_inventario/detalle/'.$param2, 'refresh');
+            return;
+        }
 
-        $page_data['precio']     = $precio;
-        $page_data['ajuste_products'] = $this->crud_model->get_products_for_ajuste_inventario();
+        if ($param1 == 'enviar' && $param2 != '') {
+            $result = $this->crud_model->enviar_inventario_conteo($param2);
+            if (!empty($result['error'])) {
+                $this->session->set_flashdata('error_message', $result['error']);
+            } else {
+                $this->session->set_flashdata('flash_message', 'Conteo enviado a autorización. El inventario no cambia hasta que un administrador lo autorice.');
+            }
+            redirect(base_url() . 'admin/ajuste_inventario/detalle/'.$param2, 'refresh');
+            return;
+        }
+
+        if ($param1 == 'autorizar' && $param2 != '') {
+            // Persistir posibles cambios del formulario antes de aplicar
+            if ($this->input->post('detalle_id')) {
+                $this->crud_model->save_inventario_conteo($param2);
+            }
+            $result = $this->crud_model->autorizar_inventario_conteo($param2);
+            if (!empty($result['error'])) {
+                $this->session->set_flashdata('error_message', $result['error']);
+            } else {
+                $this->session->set_flashdata('flash_message', 'Conteo autorizado. Se aplicaron '.$result['applied'].' ajustes al inventario.');
+            }
+            redirect(base_url() . 'admin/ajuste_inventario/detalle/'.$param2, 'refresh');
+            return;
+        }
+
+        if ($param1 == 'anular' && $param2 != '') {
+            $result = $this->crud_model->anular_inventario_conteo($param2);
+            if (!empty($result['error'])) {
+                $this->session->set_flashdata('error_message', $result['error']);
+            } else {
+                $this->session->set_flashdata('flash_message', 'Conteo anulado.');
+            }
+            redirect(base_url() . 'admin/ajuste_inventario/', 'refresh');
+            return;
+        }
+
+        if ($param1 == 'detalle' && $param2 != '') {
+            $conteo = $this->crud_model->get_conteo_by_code($param2);
+            if (!$conteo) {
+                $this->session->set_flashdata('error_message', 'Conteo no encontrado.');
+                redirect(base_url() . 'admin/ajuste_inventario/', 'refresh');
+                return;
+            }
+            $page_data['conteo'] = $conteo;
+            $page_data['detalle'] = $this->crud_model->get_conteo_detalle($conteo->conteo_id);
+            $page_data['page_name'] = 'conteo_detalle';
+            $page_data['page_title'] = 'Conteo '.$param2;
+            $this->load->view('backend/index', $page_data);
+            return;
+        }
+
+        $page_data['conteos'] = $this->crud_model->get_conteos(150);
+        $page_data['categories'] = $this->crud_model->get_categories()->result_array();
+        $page_data['providers'] = $this->db->order_by('name', 'ASC')->get_where('provider', array('status' => 1))->result_array();
         $page_data['page_name']  = 'ajuste_inventario';
-        $page_data['page_title'] = "Ajuste de inventario";
+        $page_data['page_title'] = "Conteo de inventario";
         $this->load->view('backend/index', $page_data);
     }
     

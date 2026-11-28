@@ -6795,6 +6795,371 @@ function new_change()
         return $list;
     }
 
+    function getCodeConteo()
+    {
+        return 'CNT'.strtoupper(substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 5));
+    }
+
+    function ensure_inventario_conteo_tables()
+    {
+        if (!$this->db->table_exists('inventario_conteo')) {
+            $this->db->query("CREATE TABLE `inventario_conteo` (
+                `conteo_id` INT(11) NOT NULL AUTO_INCREMENT,
+                `code` VARCHAR(40) NOT NULL,
+                `branch_id` INT(11) NOT NULL DEFAULT 0,
+                `scope_type` VARCHAR(20) NOT NULL DEFAULT 'all',
+                `scope_id` INT(11) NULL DEFAULT NULL,
+                `scope_label` VARCHAR(191) NULL DEFAULT NULL,
+                `notes` TEXT NULL,
+                `status` TINYINT(4) NOT NULL DEFAULT 1,
+                `created_by` INT(11) NOT NULL DEFAULT 0,
+                `authorized_by` INT(11) NULL DEFAULT NULL,
+                `authorized_at` DATETIME NULL DEFAULT NULL,
+                `date` DATE NOT NULL,
+                `datetime` DATETIME NOT NULL,
+                `num_products` INT(11) NOT NULL DEFAULT 0,
+                `diff_count` INT(11) NOT NULL DEFAULT 0,
+                PRIMARY KEY (`conteo_id`),
+                UNIQUE KEY `uk_conteo_code` (`code`),
+                KEY `idx_conteo_status` (`status`),
+                KEY `idx_conteo_branch` (`branch_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+        if (!$this->db->table_exists('inventario_conteo_detalle')) {
+            $this->db->query("CREATE TABLE `inventario_conteo_detalle` (
+                `detalle_id` INT(11) NOT NULL AUTO_INCREMENT,
+                `conteo_id` INT(11) NOT NULL,
+                `products_id` INT(11) NOT NULL,
+                `stock_sistema` DECIMAL(14,4) NOT NULL DEFAULT 0,
+                `stock_contado` DECIMAL(14,4) NULL DEFAULT NULL,
+                `diferencia` DECIMAL(14,4) NOT NULL DEFAULT 0,
+                `counted` TINYINT(1) NOT NULL DEFAULT 0,
+                `notes` VARCHAR(255) NULL DEFAULT NULL,
+                PRIMARY KEY (`detalle_id`),
+                KEY `idx_conteo_det_conteo` (`conteo_id`),
+                KEY `idx_conteo_det_prod` (`products_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+    }
+
+    /**
+     * Stock map sin filtrar stock>0 (incluye ceros implícitos al cruzar con productos).
+     */
+    function get_stocks_map_all($branch_id)
+    {
+        $sql = "SELECT products_id,
+                    COALESCE(SUM(CASE WHEN type IN (1,2) AND status = 1 THEN amount ELSE 0 END), 0)
+                  - COALESCE(SUM(CASE WHEN type IN (0,3,4) AND status = 1 THEN amount ELSE 0 END), 0) AS stock
+                FROM product_details
+                WHERE branch_id = ?
+                GROUP BY products_id";
+        $rows = $this->db->query($sql, array((int)$branch_id))->result_array();
+        $map = array();
+        foreach ($rows as $row) {
+            $map[(int)$row['products_id']] = floatval($row['stock']);
+        }
+        return $map;
+    }
+
+    function get_products_for_conteo($scope_type = 'all', $scope_id = 0, $branch_id = 0)
+    {
+        $stocks = $this->get_stocks_map_all($branch_id);
+        $this->db->select('products_id, name, code, category, provider, cost, presentation');
+        $this->db->where('status', 1);
+        $this->db->where('presentation', 'Unidad');
+        $scope_type = strtolower(trim((string)$scope_type));
+        $scope_id = (int)$scope_id;
+        if ($scope_type === 'category' && $scope_id > 0) {
+            $this->db->where('category', $scope_id);
+        } elseif ($scope_type === 'provider' && $scope_id > 0) {
+            $this->db->where('provider', $scope_id);
+        }
+        $this->db->order_by('code', 'ASC');
+        $products = $this->db->get('products')->result_array();
+        $list = array();
+        foreach ($products as $pp) {
+            $pid = (int)$pp['products_id'];
+            $pp['stock'] = isset($stocks[$pid]) ? floatval($stocks[$pid]) : 0;
+            if ($pp['stock'] < 0) $pp['stock'] = 0;
+            $list[] = $pp;
+        }
+        return $list;
+    }
+
+    function get_conteos($limit = 100)
+    {
+        $this->ensure_inventario_conteo_tables();
+        return $this->db->order_by('conteo_id', 'DESC')
+            ->limit((int)$limit)
+            ->get('inventario_conteo')
+            ->result_array();
+    }
+
+    function get_conteo_by_code($code)
+    {
+        $this->ensure_inventario_conteo_tables();
+        return $this->db->get_where('inventario_conteo', array('code' => $code))->row();
+    }
+
+    function get_conteo_detalle($conteo_id)
+    {
+        $this->ensure_inventario_conteo_tables();
+        $this->db->select('d.*, p.name AS product_name, p.code AS product_code');
+        $this->db->from('inventario_conteo_detalle d');
+        $this->db->join('products p', 'p.products_id = d.products_id', 'left');
+        $this->db->where('d.conteo_id', (int)$conteo_id);
+        $this->db->order_by('p.code', 'ASC');
+        return $this->db->get()->result_array();
+    }
+
+    function create_inventario_conteo()
+    {
+        $this->ensure_inventario_conteo_tables();
+        $scope_type = strtolower(trim((string)$this->input->post('scope_type')));
+        if (!in_array($scope_type, array('all', 'category', 'provider'), true)) {
+            return array('error' => 'Ámbito de conteo inválido.');
+        }
+        $scope_id = (int)$this->input->post('scope_id');
+        if ($scope_type !== 'all' && $scope_id <= 0) {
+            return array('error' => 'Selecciona categoría o proveedor.');
+        }
+
+        $branch_id = 0; // bodega (mismo criterio que ajuste actual)
+        $label = 'Todo el inventario';
+        if ($scope_type === 'category') {
+            $cat = $this->db->get_where('categories', array('category_id' => $scope_id))->row();
+            if (!$cat) return array('error' => 'Categoría no encontrada.');
+            $label = 'Categoría: '.$cat->name;
+        } elseif ($scope_type === 'provider') {
+            $prov = $this->db->get_where('provider', array('provider_id' => $scope_id))->row();
+            if (!$prov) return array('error' => 'Proveedor no encontrado.');
+            $label = 'Proveedor: '.$prov->name;
+        }
+
+        $products = $this->get_products_for_conteo($scope_type, $scope_id, $branch_id);
+        if (empty($products)) {
+            return array('error' => 'No hay productos para ese ámbito.');
+        }
+
+        $code = $this->getCodeConteo();
+        while ($this->db->get_where('inventario_conteo', array('code' => $code))->num_rows() > 0) {
+            $code = $this->getCodeConteo();
+        }
+
+        $header = array(
+            'code' => $code,
+            'branch_id' => $branch_id,
+            'scope_type' => $scope_type,
+            'scope_id' => ($scope_type === 'all') ? null : $scope_id,
+            'scope_label' => $label,
+            'notes' => trim((string)$this->input->post('notes')),
+            'status' => 1,
+            'created_by' => (int)$this->session->userdata('login_user_id'),
+            'date' => date('Y-m-d'),
+            'datetime' => date('Y-m-d H:i:s'),
+            'num_products' => count($products),
+            'diff_count' => 0
+        );
+        $this->db->insert('inventario_conteo', $header);
+        $conteo_id = (int)$this->db->insert_id();
+
+        foreach ($products as $pp) {
+            $this->db->insert('inventario_conteo_detalle', array(
+                'conteo_id' => $conteo_id,
+                'products_id' => (int)$pp['products_id'],
+                'stock_sistema' => floatval($pp['stock']),
+                'stock_contado' => null,
+                'diferencia' => 0,
+                'counted' => 0,
+                'notes' => null
+            ));
+        }
+
+        $message = 'Creó conteo de inventario '.$code.' ('.$label.')';
+        $this->insert_binnacle($message);
+        $this->insert_notification($message, base64_encode('admin/ajuste_inventario/detalle/'.$code), 'inventario', 'Conteo');
+
+        return array('code' => $code, 'conteo_id' => $conteo_id);
+    }
+
+    function save_inventario_conteo($code)
+    {
+        $this->ensure_inventario_conteo_tables();
+        $header = $this->get_conteo_by_code($code);
+        if (!$header || !in_array((int)$header->status, array(1, 2), true)) {
+            return array('error' => 'El conteo no se puede editar.');
+        }
+
+        $detalle_ids = $this->input->post('detalle_id');
+        $contados = $this->input->post('stock_contado');
+        $notes = $this->input->post('det_notes');
+        if (!is_array($detalle_ids)) {
+            return array('error' => 'Sin líneas para guardar.');
+        }
+
+        $diff_count = 0;
+        $n = count($detalle_ids);
+        for ($i = 0; $i < $n; $i++) {
+            $did = (int)$detalle_ids[$i];
+            $row = $this->db->get_where('inventario_conteo_detalle', array(
+                'detalle_id' => $did,
+                'conteo_id' => (int)$header->conteo_id
+            ))->row();
+            if (!$row) continue;
+
+            $raw = isset($contados[$i]) ? trim((string)$contados[$i]) : '';
+            if ($raw === '') {
+                $upd = array(
+                    'stock_contado' => null,
+                    'diferencia' => 0,
+                    'counted' => 0,
+                    'notes' => isset($notes[$i]) ? substr(trim((string)$notes[$i]), 0, 255) : null
+                );
+            } else {
+                $contado = max(0, floatval($raw));
+                $diff = round($contado - floatval($row->stock_sistema), 4);
+                if (abs($diff) > 0.0001) $diff_count++;
+                $upd = array(
+                    'stock_contado' => $contado,
+                    'diferencia' => $diff,
+                    'counted' => 1,
+                    'notes' => isset($notes[$i]) ? substr(trim((string)$notes[$i]), 0, 255) : null
+                );
+            }
+            $this->db->where('detalle_id', $did);
+            $this->db->update('inventario_conteo_detalle', $upd);
+        }
+
+        $this->db->where('conteo_id', (int)$header->conteo_id);
+        $this->db->update('inventario_conteo', array(
+            'diff_count' => $diff_count,
+            'notes' => trim((string)$this->input->post('notes'))
+        ));
+
+        return array('ok' => true, 'diff_count' => $diff_count);
+    }
+
+    function enviar_inventario_conteo($code)
+    {
+        $save = $this->save_inventario_conteo($code);
+        if (!empty($save['error'])) return $save;
+
+        $header = $this->get_conteo_by_code($code);
+        if (!$header || (int)$header->status !== 1) {
+            return array('error' => 'Solo se puede enviar un conteo en borrador.');
+        }
+
+        $pending = $this->db->where('conteo_id', (int)$header->conteo_id)
+            ->where('counted', 0)
+            ->count_all_results('inventario_conteo_detalle');
+        if ($pending > 0) {
+            return array('error' => 'Hay '.$pending.' productos sin contar. Completa el conteo antes de enviar.');
+        }
+
+        $this->db->where('conteo_id', (int)$header->conteo_id);
+        $this->db->update('inventario_conteo', array('status' => 2));
+
+        $message = 'Envió conteo '.$code.' a autorización';
+        $this->insert_binnacle($message);
+        $this->insert_notification($message, base64_encode('admin/ajuste_inventario/detalle/'.$code), 'inventario', 'Conteo');
+
+        return array('ok' => true);
+    }
+
+    function anular_inventario_conteo($code)
+    {
+        $header = $this->get_conteo_by_code($code);
+        if (!$header || (int)$header->status === 3) {
+            return array('error' => 'No se puede anular este conteo.');
+        }
+        $this->db->where('conteo_id', (int)$header->conteo_id);
+        $this->db->update('inventario_conteo', array('status' => 0));
+        $message = 'Anuló conteo de inventario '.$code;
+        $this->insert_binnacle($message);
+        return array('ok' => true);
+    }
+
+    /**
+     * Autoriza y aplica diferencias al inventario (bodega).
+     * diferencia = contado - sistema
+     * >0 entrada type=2; <0 salida type=0
+     */
+    function autorizar_inventario_conteo($code)
+    {
+        $this->ensure_inventario_conteo_tables();
+        if ((int)$this->session->userdata('login_user_type') !== 1) {
+            return array('error' => 'Solo un administrador puede autorizar el conteo.');
+        }
+
+        $header = $this->get_conteo_by_code($code);
+        if (!$header || (int)$header->status !== 2) {
+            return array('error' => 'El conteo debe estar pendiente de autorización.');
+        }
+
+        $detalles = $this->get_conteo_detalle($header->conteo_id);
+        $user_id = (int)$this->session->userdata('login_user_id');
+        $date = date('Y-m-d');
+        $applied = 0;
+
+        foreach ($detalles as $d) {
+            if (!(int)$d['counted']) continue;
+            $diff = floatval($d['diferencia']);
+            if (abs($diff) < 0.0001) continue;
+
+            $pid = (int)$d['products_id'];
+            $prod = $this->db->get_where('products', array('products_id' => $pid))->row();
+            if (!$prod) continue;
+
+            $amount = abs($diff);
+            $dat2 = array(
+                'date' => $date,
+                'products_id' => $pid,
+                'user_id' => $user_id,
+                'branch_id' => (int)$header->branch_id,
+                'amount' => $amount,
+                'provider' => isset($prod->provider) ? $prod->provider : 0,
+                'cost' => isset($prod->cost) ? $prod->cost : 0,
+                'price' => 0,
+                'description' => 'Conteo inventario '.$code,
+                'activity_ref' => $code,
+                'products_id_2' => 0,
+                'iva' => empty($prod->iva) ? 0 : 1,
+                'status' => 1,
+                'code' => ''
+            );
+
+            if ($diff < 0) {
+                // Faltante: salida
+                $dat2['type'] = 0;
+                $lote = $this->db->order_by('lote_id', 'ASC')
+                    ->get_where('lotes', array('id_producto' => $pid, 'branch_id' => (int)$header->branch_id, 'existencia >' => 0))
+                    ->row_array();
+                $dat2['code'] = $lote ? $lote['code'] : '';
+            } else {
+                // Sobrante: entrada
+                $dat2['type'] = 2;
+            }
+
+            $this->db->insert('product_details', $dat2);
+            $this->alerta_stock($pid);
+            $applied++;
+        }
+
+        $this->db->where('conteo_id', (int)$header->conteo_id);
+        $this->db->update('inventario_conteo', array(
+            'status' => 3,
+            'authorized_by' => $user_id,
+            'authorized_at' => date('Y-m-d H:i:s'),
+            'diff_count' => $applied
+        ));
+
+        $message = 'Autorizó y aplicó conteo '.$code.' ('.$applied.' ajustes)';
+        $this->insert_binnacle($message);
+        $this->insert_notification($message, base64_encode('admin/ajuste_inventario/detalle/'.$code), 'inventario', 'Conteo');
+
+        return array('ok' => true, 'applied' => $applied);
+    }
+
     /** Stock total del producto en todas las sucursales/bodega (antes de una compra). */
     function get_total_stock($product_id)
     {
